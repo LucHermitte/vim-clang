@@ -36,11 +36,17 @@ def getCurrentColumn():
 #======================================================================
 def getCurrentUsr():
   userOptions = splitOptions(vim.eval("clang#user_options()"))
-  tu = getCurrentTranslationUnit(userOptions, getCurrentFile(), vim.current.buffer.name, update = True)
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
+  params = getCompileParams(vim.current.buffer.name)
+  timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
+  tu = getCurrentTranslationUnit(
+      userOptions, getCurrentFile(),
+      vim.current.buffer.name, timer, update = True)
   file = tu.get_file(vim.current.buffer.name)
   loc = tu.get_location(file.name, (getCurrentLine(), getCurrentColumn()))
   cursor = Cursor.from_location(tu, loc)
-  ref = cursor.get_ref()
+  ref = cursor.referenced
   if ref is None or ref == Cursor.nullCursor():
     return None
   # print "Cursor:", cursor.displayname
@@ -48,7 +54,7 @@ def getCurrentUsr():
 
 #  ref = None
 #  while (ref is None or ref == Cursor.nullCursor()):
-#    ref = cursor.get_ref()
+#    ref = cursor.referenced()
 #    nextCursor = cursor.lexical_parent
 #    if (nextCursor is None or cursor == nextCursor):
 #      return None
