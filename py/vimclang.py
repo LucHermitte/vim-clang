@@ -63,24 +63,27 @@ def getCurrentUsr():
 #  return ref.get_usr()
 
 #======================================================================
-# searchKind is one of ["declarations", "subclasses", None]
-def getCurrentReferences(searchKind = None):
-  def loadClic():
+class ClicDB:
+  def __init__(self):
     filename = vim.eval("clang#clic_filename()")
-    clicDb = db.DB()
+    self.clicDb = db.DB()
     try:
-      clicDb.open(filename, None, db.DB_BTREE, db.DB_RDONLY)
-      return clicDb
+      self.clicDb.open(filename, None, db.DB_BTREE, db.DB_RDONLY)
     except db.DBNoSuchFileError:
-      print "DBNoSuchFileError", filename
-      clicDb.close()
-      return None
+      self.clicDb.close()
+      self.clicDb = None
+      raise "DBNoSuchFileError", filename
+  def __del__(self):
+    if self.clicDb != None:
+      self.clicDb.close()
 
-  def getReferencesForUsr(clicDb, usr):
-    locations = clicDb.get(usr, '')
+  def getReferencesForUsr(self, usr):
+    locations = self.clicDb.get(usr, '')
     return locations.split('\t')
 
-  def locationToQuickFix(location):
+#======================================================================
+class QuickFixAdapter:
+  def locationToQuickFix(self, location):
     parts = location.split(':')
     if len(parts) != 4:
       return {} # mark invalid items with an empty dict
@@ -94,22 +97,15 @@ def getCurrentReferences(searchKind = None):
         text = refKind.rstrip() + ": " + text.strip()
     return {'filename' : filename, 'lnum' : line, 'col' : column, 'text': text, 'kind': kind}
 
-  def filtered(quickFixList):
-    quickFixList = filter(lambda x: len(x) > 0 and len(x['text']) > 0, quickFixList) # remove invalid items
-    validKinds = []
-    if searchKind == None or searchKind == 'all':
-      return quickFixList
-    elif searchKind == 'declarations':
-      validKinds = range(1, 40)
-    elif searchKind == 'subclasses':
-      validKinds = [44]
-    return filter(lambda x: x['kind'] in validKinds, quickFixList)
-
-  def deduplicated(quickFixList):
+  def uniq_sort(self,quickFixList):
     def locationsMatch(item1, item2):
       return item1['filename'] == item2['filename']\
           and item1['lnum'] == item2['lnum']\
           and item1['col'] == item2['col']
+    quickFixList.sort(lambda a, b:
+        cmp((a['filename'], a['lnum'], a['col'], a['kind']),
+          (b['filename'], b['lnum'], b['col'], b['kind']))
+        )
     i = 0
     while i < len(quickFixList):
       if i > 0 and locationsMatch(quickFixList[i], quickFixList[i-1]):
@@ -124,8 +120,23 @@ def getCurrentReferences(searchKind = None):
         i += 1
     return quickFixList
 
+
+#======================================================================
+# searchKind is one of ["declarations", "subclasses", None]
+def getCurrentReferences(searchKind = None):
+  def filtered(quickFixList):
+    quickFixList = filter(lambda x: len(x) > 0 and len(x['text']) > 0, quickFixList) # remove invalid items
+    validKinds = []
+    if searchKind == None or searchKind == 'all':
+      return quickFixList
+    elif searchKind == 'declarations':
+      validKinds = range(1, 40)
+    elif searchKind == 'subclasses':
+      validKinds = [44]
+    return filter(lambda x: x['kind'] in validKinds, quickFixList)
+
   # Start of getCurrentReferences():
-  clicDb = loadClic()
+  clicDb = ClicDB()
   if clicDb is None:
     print "CLIC not loaded"
     return []
@@ -134,10 +145,9 @@ def getCurrentReferences(searchKind = None):
     print "No USR found"
     result = []
   else:
-    result = filtered(map(locationToQuickFix, getReferencesForUsr(clicDb, usr)))
-    result.sort(lambda a, b: cmp((a['filename'], a['lnum'], a['col'], a['kind']),
-                                 (b['filename'], b['lnum'], b['col'], b['kind'])))
-    result = deduplicated(result)
+    qfa = QuickFixAdapter()
+    result = filtered(map(qfa.locationToQuickFix, clicDb.getReferencesForUsr(usr)))
+    result = qfa.uniq_sort(result)
     if not result:
       print "No references to " + usr
     else:
@@ -146,31 +156,18 @@ def getCurrentReferences(searchKind = None):
       else:
         title = searchKind + ' of ' + usr
         result.insert(0, {'text': title} )
-  clicDb.close()
   return result
 
 #======================================================================
 def getDeclarations(searchKind, pattern):
-  # todo: OO factorize loadClic and its use w/ getCurrentReferences
-  def loadClic():
-    filename = vim.eval("clang#clic_filename()")
-    clicDb = db.DB()
-    try:
-      clicDb.open(filename, None, db.DB_BTREE, db.DB_RDONLY)
-      return clicDb
-    except db.DBNoSuchFileError:
-      print "DBNoSuchFileError", filename
-      clicDb.close()
-      return None
-
-  # Start of getDeclarations
-  clicDb = loadClic()
+  clicDb = ClicDB()
   if clicDb is None:
     print "CLIC not loaded"
     return []
   
   result = []
   matcher = re.compile(pattern)
+  # todo: fix acces to sub info
   keys = clicDb.keys()
   for k in keys:
     lk = k.split('#')[0].split('@')
@@ -193,7 +190,6 @@ def getDeclarations(searchKind, pattern):
           result . append({'filename' : filename, 'lnum' : line, 'col' : column, 'text': text, 'kind': kind})
 
   # End of function
-  clicDb.close()
   return result
 
 #======================================================================
