@@ -81,6 +81,9 @@ class ClicDB:
     locations = self.clicDb.get(usr, '')
     return locations.split('\t')
 
+  def getUsrList(self):
+    return self.clicDb.keys()
+
 #======================================================================
 class QuickFixAdapter:
   def locationToQuickFix(self, location):
@@ -168,17 +171,19 @@ def getDeclarations(searchKind, pattern):
   result = []
   matcher = re.compile(pattern)
   # todo: fix acces to sub info
-  keys = clicDb.keys()
-  for k in keys:
+  usrs = clicDb.getUsrList()
+  for k in usrs:
     lk = k.split('#')[0].split('@')
     if matcher.match(lk[-1]):
-      locations = clicDb[k].split('\t')
+      locations = clicDb.getReferencesForUsr(k)
       for loc in locations:
         parts = loc.split(':')
         # print "USR -> ", lk, " in ", parts
         kind = int(parts[3])
-        refKind  = referenceKinds[kind] or kind
-        if searchKind == refKind or int(searchKind) == kind:
+        refKind  = referenceKinds[kind] if referenceKinds.has_key(kind) else kind
+        # print "kind: ", kind , " -- ref kind:", refKind
+        if searchKind == refKind or (searchKind.isdigit() and int(searchKind) == kind):
+        # if searchKind == refKind or (int(searchKind) == kind):
           # print "USR -> ", lk, " in ", parts
           # print "FOUND!"
           filename = parts[0]
