@@ -1,6 +1,6 @@
 # File:       py/vimclang.py                                            {{{1
 # Maintainer: Hermitte <EMAIL:hermitte {at} free {dot} fr>
-#		          <URL:https://github.com/LucHermitte/vim-clang>
+#             <URL:https://github.com/LucHermitte/vim-clang>
 # Copying:                                                     {{{2
 #   getReferences() and getCurrentUser() functions are courtesy of exclipy.
 #         https://github.com/exclipy/clang_complete
