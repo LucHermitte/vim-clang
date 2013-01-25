@@ -86,7 +86,7 @@ endfunction
 " Function: clang#update_clic() {{{3
 function! clang#update_clic(project_name) abort
   " Assert type(a:project) == type({})
-  echomsg string(a:project_name)
+  " echomsg string(a:project_name)
   let project = eval('g:'.a:project_name)
   let source_dir = project.paths.trunk
 
@@ -98,8 +98,22 @@ function! clang#update_clic(project_name) abort
       throw "CLIC directory ``".clic_path."'' does not exist, and it cannot be created."
     endif
   endif
+  let compile_command_filename = b:BTW_compilation_dir.'/compile_commands.json'
+  if !file_readable(compile_command_filename)
+    call lh#common#error_msg(compile_command_filename ." hasn't been generated")
+    return
+  endif
+  " $CFLAGS
+  let cflags = lh#option#get('clang_compile_options', '')
+  let lCFLAGS = type(cflags) == type([]) ? copy(cflags) : split(cflags)
+  let lCFLAGS = map(lCFLAGS, '" -c ".fnameescape(v:val)')
+  let sCFLAGS = join(lCFLAGS, '')
+  if !empty(g:clang_library_path)
+    let sCFLAGS .= ' -l '.fnameescape(g:clang_library_path)
+  endif
   let cmd = "cd ".fnameescape(clic_path).
-        \ ' && clic_update.sh '. fnameescape(source_dir).' '.fnameescape(build_path)
+        \ ' && clic_update.py '. fnameescape(source_dir).' '.fnameescape(compile_command_filename)
+        \ . sCFLAGS
   try
     let makeprg_save = &makeprg
     let &makeprg = cmd
@@ -112,6 +126,9 @@ endfunction
 
 " # python module init {{{2
 " Function: clang#_init_python() {{{3
+" The Python module will be loaded only if it has changed since the last time
+" this autoload plugin has been sourced. It is of course loaded on the first
+" time. Note: this feature is to help me maintain vim-clang.
 let s:py_script_timestamp = 0
 let s:plugin_root_path    = expand('<sfile>:p:h:h')
 let s:clangpy_script      = s:plugin_root_path . '/py/vimclang.py'
@@ -153,52 +170,54 @@ function! clang#get_currentusr() abort
 endfunction
 
 " Function: clang#get_references(what) {{{3
-if !exists(':Copen')
-  " :Copen originally come from BuildToolsWrapper, it's a smart :copen
-  " command that check whether there are errors, and the number of
-  " required lines for the quickfix windows
-  command! copen Copen
-endif
 function! clang#get_references(what) abort
   call s:CheckUseLibrary()
   echo "Searching for references to ".expand('<cword>')."..."
-  python vim.command('let l:list = ' + str(getCurrentReferences(vim.eval('a:what'))))
-  if !empty(l:list)
-    let title = l:list[0].text
-    call setqflist(l:list)
-    " cd . is used to avoid absolutepaths in the quickfix window
-    cd .
-    Copen
-    let w:quickfix_title = "[CLIC] ".title
-  else
-    cclose
-  endif
+  python vim.command('let list = ' + str(getCurrentReferences(vim.eval('a:what'))))
+  return list
+endfunction
+
+" Function: clang#display_references(what) {{{3
+function! clang#display_references(what) abort
+  let list = clang#get_references(a:what)
+  call s:DisplayIntoQuickfix(list)
 endfunction
 
 " Function: clang#list(kind, pattern) {{{3
 function! clang#list(kind, pattern)
   call s:CheckUseLibrary()
-  python vim.command('let l:list = ' + str(getDeclarations(vim.eval('a:kind'), vim.eval('a:pattern'))))
-  if !empty(l:list)
-    let title = l:list[0].text
-    call setqflist(l:list)
-    " cd . is used to avoid absolutepaths in the quickfix window
-    cd .
-    Copen
-    let w:quickfix_title = "[CLIC] ".title
-  else
-    cclose
-  endif
-  return list
+  python vim.command('let list = ' + str(getDeclarations(vim.eval('a:kind'), vim.eval('a:pattern'))))
+  call s:DisplayIntoQuickfix(list)
 endfunction
 
 "------------------------------------------------------------------------
 " ## Internal functions {{{1
+" Function: s:CheckUseLibrary() {{{2
 function! s:CheckUseLibrary()
   " NB: this plugin requires clang_complete which is in charge of
   " setting g:clang_use_library
   if ! g:clang_use_library
     throw "lh-clang: The use of libclang is required to perform this operation"
+  endif
+endfunction
+
+" Function: s:QueryAndDisplayIntoQuickfix(command) {{{2
+if !exists(':Copen')
+  " :Copen originally comes from BuildToolsWrapper, it's a smart :copen
+  "   command that check whether there are errors, and the number of
+  "   required lines for the quickfix windows
+  " :cd . is used to avoid absolutepaths in the quickfix window
+  command! Copen cd .|copen
+endif
+
+function! s:DisplayIntoQuickfix(list)
+  if !empty(a:list)
+    let title = a:list[0].text
+    call setqflist(a:list)
+    Copen
+    let w:quickfix_title = "[CLIC] ".title
+  else
+    cclose
   endif
 endfunction
 
