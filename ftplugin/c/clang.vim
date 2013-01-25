@@ -79,11 +79,11 @@ endif
 call lh#menu#make("n", '50.90', '&Project.See &USR', s:key_usr,
             \ '<buffer>', ":call clang#get_currentusr()<cr>")
 call lh#menu#make("n", '50.91', '&Project.See &Declarations', s:key_declarations,
-            \ '<buffer>', ":call clang#get_references('declarations')<cr>")
+            \ '<buffer>', ":call clang#display_references('declarations')<cr>")
 call lh#menu#make("n", '50.92', '&Project.See &References',   s:key_references,
-            \ '<buffer>', ":call clang#get_references('all')<cr>")
+            \ '<buffer>', ":call clang#display_references('all')<cr>")
 call lh#menu#make("n", '50.93', '&Project.See &Sub-classes',  s:key_subclasses,
-            \ '<buffer>', ":call clang#get_references('subclasses')<cr>")
+            \ '<buffer>', ":call clang#display_references('subclasses')<cr>")
 
 "=============================================================================
 " Global Definitions {{{1
