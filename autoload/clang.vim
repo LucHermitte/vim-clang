@@ -111,6 +111,16 @@ function! clang#update_clic(project_name) abort
   if !empty(g:clang_library_path)
     let sCFLAGS .= ' -l '.fnameescape(g:clang_library_path)
   endif
+  " Files to exclude when determining the options global to all files in a
+  " directory
+  let excluded = lh#option#get('clang_compile_excluded_files_for_dir_options', '')
+  let lExcluded= type(excluded) == type([]) ? copy(excluded) : split(excluded)
+  let lExcluded= map(lExcluded, '" -x ".fnameescape(v:val)')
+  if !empty(lExcluded)
+    let sExcluded= join(lExcluded, '')
+    let sCFLAGS .= sExcluded
+  endif
+  " The final command + execute
   let cmd = "cd ".fnameescape(clic_path).
         \ ' && clic_update.py '. fnameescape(source_dir).' '.fnameescape(compile_command_filename)
         \ . sCFLAGS
