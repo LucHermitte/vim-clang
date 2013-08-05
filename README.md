@@ -53,13 +53,14 @@ Disclaimer:
 -----------
 This module is a fork of @exclipy's fork of
 [clang\_complete](<https://github.com/exclipy/clang_complete>).
-The functions dedicated to the interactions with clang\_indexer have extracted,
+The functions dedicated to the interaction with clang\_indexer have been extracted,
 and a few more will be added.
 
 
 Licence:
 --------
 getReferences() and getCurrentUser() functions are courtesy of exclipy.
+
 Copyright 2013 Luc Hermitte
 
     This program is free software: you can redistribute it and/or modify
