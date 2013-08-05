@@ -19,14 +19,28 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # }}}1
 #======================================================================
-# from clang.cindex import *
 import vim
 import time
 import re
 import threading
 import bsddb.db as db
 import linecache
+# from clang.cindex import *
+import clang.cindex
 
+#======================================================================
+# Patch to clang_complete cindex.py file
+# See Issue#1: https://github.com/LucHermitte/vim-clang/issues/1
+def _null_cursor():
+  return clang.cindex.conf.lib.clang_getNullCursor()
+def _is_null_cursor(self):
+  return self == clang.cindex.conf.lib.clang_getNullCursor()
+
+Cursor.nullCursor = staticmethod(_null_cursor)
+Cursor.isNull     = _is_null_cursor
+
+
+#======================================================================
 def getCurrentLine():
   return int(vim.eval("line('.')"))
 
@@ -47,7 +61,7 @@ def getCurrentUsr():
   loc = tu.get_location(file.name, (getCurrentLine(), getCurrentColumn()))
   cursor = Cursor.from_location(tu, loc)
   ref = cursor.referenced
-  if ref is None or ref == Cursor.nullCursor():
+  if ref is None or ref.isNull():
     return None
   # print "Cursor:", cursor.displayname
   return ref.get_usr()
@@ -72,7 +86,7 @@ class ClicDB:
     except db.DBNoSuchFileError:
       self.clicDb.close()
       self.clicDb = None
-      raise "DBNoSuchFileError", filename
+      raise Exception("DBNoSuchFileError", filename)
   def __del__(self):
     if self.clicDb != None:
       self.clicDb.close()
