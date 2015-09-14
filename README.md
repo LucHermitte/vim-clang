@@ -3,6 +3,8 @@ vim-clang
 
 Module to Interact with libclang (and clang\_indexer DB) from Vim.
 
+[![Project Stats](https://www.openhub.net/p/21020/widgets/project_thin_badge.gif)](https://www.openhub.net/p/21020)
+
 Features:
 ---------
 * Inter-operates with clang\_indexer DB
@@ -35,7 +37,7 @@ Note: this script hasn't been registered yet to VAM addons list.
 Options:
 --------
 * The options from clang\_complete apply regarding libclang configuration
-  ([bg]:clang\_user\_options that defines how to use libclang) 
+  ([bg]:clang\_user\_options that defines how to use libclang)
 * [bg]:_[{ft}\_]_clic\_filename that tells where clang\_indexer database is
   located
 
