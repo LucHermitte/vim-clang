@@ -20,15 +20,15 @@ Installation Requirements:
 * Python 2.x
 * [clang\_complete](https://github.com/Rip-Rip/clang_complete)
 * [clang\_indexer](https://github.com/LucHermitte/clang_indexer)
-* [lh-vim-lib](http://code.google.com/p/lh-vim/wiki/lhVimLib),
-  [lh-dev](http://code.google.com/p/lh-vim/source/browse/dev/trunk/lh-dev-addon-info.txt)
+* [lh-vim-lib](http://github.com/LucHermitte/lh-vim),
+  [lh-dev](http://github.com/LucHermitte/lh-dev)
 
 Note: this module takes advantage of the following modules when they are
 installed:
-* [BuildToolsWrappers](http://code.google.com/p/lh-vim/source/browse/BTW/trunk/lh-build-tools-wrapper-addon-info.txt)
-* my fork of Michael Geddes' [buffer-menu](http://code.google.com/p/lh-vim/source/browse/misc/trunk/plugin/buffermenu.vim)
+* [BuildToolsWrappers](http://github.com/LucHermitte/vim-build-tools-wrapper)
+* my fork of Michael Geddes' [buffer-menu](http://github.com/LucHermitte/lh-misc/blob/master/plugin/buffermenu.vim)
 
-With vim-addon-manager, just install vim-clang, and let VAM take care of
+With vim-addon-manager, just install `vim-clang`, and let VAM take care of
 installing all the vim dependencies. You'll still have to install Vim, Python,
 **and** clang\_indexer by yourself.
 
