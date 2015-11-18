@@ -2,14 +2,15 @@
 " File:         mkVba/mk-vim-clang.vim                            {{{1
 " Author:       Luc Hermitte <EMAIL:hermitte {at} free {dot} fr>
 "		<URL:http://code.google.com/p/lh-vim/>
-" Version:      002
+" Version:      0.0.3
+let s:version = '0.0.3'
 " Created:      18th Jan 2013
-" Last Update:  $Date$
+" Last Update:  18th Nov 2015
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       VBA builder script for vim-clang
 "       Source this script to generate a vimball archive.
-" 
+"
 " Copying:                                                     {{{2
 "   Copyright 2013 Luc Hermitte
 "
@@ -25,18 +26,17 @@
 "
 "    You should have received a copy of the GNU General Public License
 "    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-" 
+"
 "------------------------------------------------------------------------
 " }}}1
 "=============================================================================
 
-let s:version = '0.0.2'
 let s:project = 'vim-clang'
 cd <sfile>:p:h
-try 
+try
   let save_rtp = &rtp
   let &rtp = expand('<sfile>:p:h:h').','.&rtp
-  exe '36,$MkVimball! '.s:project.'-'.s:version
+  exe '46,$MkVimball! '.s:project.'-'.s:version
   set modifiable
   set buftype=
 finally
@@ -49,5 +49,4 @@ autoload/clang.vim
 ftplugin/c/clang.vim
 py/vimclang.py
 vim-clang-addon.info.txt
-"=============================================================================
-" vim600: set fdm=marker:
+VimFlavor
