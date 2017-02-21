@@ -4,7 +4,7 @@
 "		<URL:https://github.com/LucHermitte/vim-clang>
 " Version:      001
 " Created:      10th Jan 2013
-" Last Update:  $Date$
+" Last Update:  21st Feb 2017
 " License:      GPLv3 with exceptions
 "               <URL:http://code.google.com/p/lh-vim/wiki/License>
 "------------------------------------------------------------------------
@@ -13,12 +13,12 @@
 "       As clang_complete and clang_indexer follow two different paths,
 "       maintaining a merged solution has become quite difficult hence this
 "       minimal solution.
-" 
+"
 "------------------------------------------------------------------------
 " Installation:                                                {{{2
 "       Requires: clang_indexer, Vim7+, python, clang_complete, lh-dev, lh-vim-lib
 "       Optional: BTW
-"       
+"
 "       Instead of g:clic_filename, this plugin uses, by order of preference:
 "       1- b:clic_filename
 "       2- g:clic_filename
@@ -50,7 +50,7 @@
 "
 "    You should have received a copy of the GNU General Public License
 "    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-" 
+"
 " }}}1
 "=============================================================================
 
@@ -74,16 +74,16 @@ let s:key_references   = lh#option#get('clang_key_references'  , '<leader>r')
 let s:key_subclasses   = lh#option#get('clang_key_subclases'   , '<leader>s')
 
 if has('gui_running') && has ('menu')
-    amenu 50.89 &Project.----<sep>---- Nop
+  call lh#project#menu#make('a', '89', '----<sep>----', '', 'Nop')
 endif
-call lh#menu#make("n", '50.90', '&Project.See &USR', s:key_usr,
-            \ '<buffer>', ":call clang#get_currentusr()<cr>")
-call lh#menu#make("n", '50.91', '&Project.See &Declarations', s:key_declarations,
-            \ '<buffer>', ":call clang#display_references('declarations')<cr>")
-call lh#menu#make("n", '50.92', '&Project.See &References',   s:key_references,
-            \ '<buffer>', ":call clang#display_references('all')<cr>")
-call lh#menu#make("n", '50.93', '&Project.See &Sub-classes',  s:key_subclasses,
-            \ '<buffer>', ":call clang#display_references('subclasses')<cr>")
+call lh#project#menu#make("n", '90', 'See &USR', s:key_usr,
+      \ '<buffer>', ":call clang#get_currentusr()<cr>")
+call lh#project#menu#make("n", '91', 'See &Declarations', s:key_declarations,
+      \ '<buffer>', ":call clang#display_references('declarations')<cr>")
+call lh#project#menu#make("n", '92', 'See &References',   s:key_references,
+      \ '<buffer>', ":call clang#display_references('all')<cr>")
+call lh#project#menu#make("n", '93', 'See &Sub-classes',  s:key_subclasses,
+      \ '<buffer>', ":call clang#display_references('subclasses')<cr>")
 
 "=============================================================================
 " Global Definitions {{{1
