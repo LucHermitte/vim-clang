@@ -4,11 +4,11 @@
 "		<URL:https://github.com/LucHermitte/vim-clang>
 " Version:      001
 " Created:      07th Jan 2013
-" Last Update:  $Date$
+" Last Update:  03rd Aug 2017
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
-" 
+"
 "------------------------------------------------------------------------
 " Installation:                                                {{{2
 "       Requires: Vim7+, python, clang_indexer, clang_complete,
@@ -40,7 +40,7 @@
 "
 "    You should have received a copy of the GNU General Public License
 "    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-" 
+"
 " }}}1
 "=============================================================================
 
@@ -217,7 +217,11 @@ if !exists(':Copen')
   "   command that check whether there are errors, and the number of
   "   required lines for the quickfix windows
   " :cd . is used to avoid absolutepaths in the quickfix window
-  command! Copen cd .|copen
+  function! s:Copen()
+    call lh#path#cd_without_sideeffects('.')
+    copen
+  endfunction
+  command! Copen call s:Copen()
 endif
 
 function! s:DisplayIntoQuickfix(list)
