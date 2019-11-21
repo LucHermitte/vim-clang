@@ -79,15 +79,56 @@ endfunction
 
 "------------------------------------------------------------------------
 " ## Exported functions {{{1
-" # misc {{{2
+" # options {{{2
+" Function: clang#libpath() {{{3
+function! clang#libpath() abort
+  if !exists('g:clang_library_path')
+    " 1- check $LD_LIBRARY_PATH
+    if has('unix')
+      let libpaths = split($LD_LIBRARY_PATH, has('unix') ? ':' : ',')
+      call filter(libpaths, '!empty(glob(v:val."/libclang.so*", 1))')
+      if !empty(libpaths)
+        let g:clang_library_path = libpaths[0]
+      endif
+    endif
+  endif
+  " 2- check $PATH if nothing was found yet
+  if !exists('g:clang_library_path')
+    " Keeps paths ending in 'bin$'
+    let binpaths = filter(split($PATH, has('unix') ? ':' : ','), 'v:val =~ "bin[/\\\\]\\=$"')
+    call filter(binpaths, '!empty(glob(v:val[:-4]."lib/libclang.so*", 1))')
+    if !empty(binpaths)
+      let g:clang_library_path = binpaths[0]
+    endif
+  endif
+  return g:clang_library_path
+endfunction
+
+" Function: clang#compilation_database() {{{3
+function! clang#compilation_database() abort
+  let filename = lh#option#get('BTW.compilation_dir').'/compile_commands.json'
+  let found = filereadable(filename)
+  call s:Verbose("Compilation database ".(found ? "found: '%1'" : "not found"), filename)
+  return filename
+endfunction
+
+" Function: clang#compilation_database_path() {{{3
+function! clang#compilation_database_path() abort
+  return fnamemodify(clang#compilation_database(), ':p:h')
+endfunction
+
 " Function: clang#user_options() {{{3
-function! clang#user_options()
+function! clang#user_options() abort
+  let system = map(copy(lh#cpp#tags#compiler_includes('clang++')), '"-isystem".v:val')
   let res = get(g:, 'clang_user_options')
         \. ' '
-        \.  get(b:, 'clang_user_options')
+        \. get(b:, 'clang_user_options')
+        \. ' '
+        \. join(system, ' ')
   return res
 endfunction
 
+" # misc {{{2
 " Function: clang#update_clic() {{{3
 function! clang#update_clic(project_name) abort
   " Assert type(a:project) == type({})
@@ -157,10 +198,17 @@ function! clang#_init_python() abort
     return
   endif
   " clang_complete python part is expected to be already initialized
-  call clang#verbose("Importing ".s:clangpy_script)
-  python import sys
-  exe 'python sys.path = ["' . s:plugin_root_path . '"] + sys.path'
-  exe 'pyfile ' . s:clangpy_script
+  call s:Verbose("Importing ".s:clangpy_script)
+  pyx << EOF
+import sys
+plugin_root_path = vim.eval('s:plugin_root_path')
+if not plugin_root_path in sys.path:
+  sys.path = [ plugin_root_path ] + sys.path
+elif int(vim.eval('clang#verbose()')):
+  print("sys.path already contains %s" % (plugin_root_path))
+EOF
+  exe 'pyxfile ' . s:clangpy_script
+  pyx initVimClang()
   let s:py_script_timestamp = ts
 endfunction
 
@@ -181,14 +229,14 @@ endfunction
 " Function: clang#get_currentusr() {{{3
 function! clang#get_currentusr() abort
   call s:CheckUseLibrary()
-  python print getCurrentUsr()
+  pythonx print getCurrentUsr()
 endfunction
 
 " Function: clang#get_references(what) {{{3
 function! clang#get_references(what) abort
   call s:CheckUseLibrary()
   echo "Searching for references to ".expand('<cword>')."..."
-  python vim.command('let list = ' + str(getCurrentReferences(vim.eval('a:what'))))
+  pythonx vim.command('let list = ' + str(getCurrentReferences(vim.eval('a:what'))))
   return list
 endfunction
 
@@ -201,7 +249,7 @@ endfunction
 " Function: clang#list(kind, pattern) {{{3
 function! clang#list(kind, pattern)
   call s:CheckUseLibrary()
-  python vim.command('let list = ' + str(getDeclarations(vim.eval('a:kind'), vim.eval('a:pattern'))))
+  pythonx vim.command('let list = ' + str(getDeclarations(vim.eval('a:kind'), vim.eval('a:pattern'))))
   call s:DisplayIntoQuickfix(list)
 endfunction
 
@@ -211,9 +259,9 @@ endfunction
 function! s:CheckUseLibrary()
   " NB: this plugin requires clang_complete which is in charge of
   " setting g:clang_use_library
-  if ! g:clang_use_library
-    throw "lh-clang: The use of libclang is required to perform this operation"
-  endif
+  " if ! g:clang_use_library
+    " throw "lh-clang: The use of libclang is required to perform this operation"
+  " endif
 endfunction
 
 " Function: s:QueryAndDisplayIntoQuickfix(command) {{{2
@@ -241,10 +289,15 @@ function! s:DisplayIntoQuickfix(list)
 endfunction
 
 "------------------------------------------------------------------------
-" ## Initialize module  {{{1
-call clang#_init_python()
-"------------------------------------------------------------------------
 " }}}1
 let &cpo=s:cpo_save
+"------------------------------------------------------------------------
+" ## Initialize module  {{{1
+if empty(lh#python#best_still_avail())
+  call lh#notify#once("+python support is required for libclang support")
+else
+  call clang#_init_python()
+endif
+" }}}1
 "=============================================================================
 " vim600: set fdm=marker:

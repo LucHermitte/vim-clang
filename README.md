@@ -20,7 +20,7 @@ Installation Requirements:
 * Python 3.x
 * Clang Python Bindings
 * [clang\_indexer](https://github.com/LucHermitte/clang_indexer) (To Be Confirmed...)
-* [lh-vim-lib](http://github.com/LucHermitte/lh-vim), v4.6.0+
+* [lh-vim-lib](http://github.com/LucHermitte/lh-vim), v4.7.1+
 
 Note: this module takes advantage of the following modules when they are
 installed:
