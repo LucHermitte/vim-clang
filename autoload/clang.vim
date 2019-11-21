@@ -2,9 +2,10 @@
 " File:         autoload/clang.vim                                      {{{1
 " Author:       Luc Hermitte <EMAIL:hermitte {at} free {dot} fr>
 "		<URL:https://github.com/LucHermitte/vim-clang>
-" Version:      001
+" Version:      2.0.0
+let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  03rd Aug 2017
+" Last Update:  21st Nov 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -16,6 +17,8 @@
 "       Optional: BTW
 "
 " History:                                                     {{{2
+"       v2.0.0:
+"               Reduce dependencies
 "       v0.0.1:
 "               Main code extracted from clang_complete fork aimed at
 "               clang_indexer
@@ -26,7 +29,7 @@
 "       Implement the features from lh#dev#cpp and lh#cpp#analysis*
 "
 " Copying:                                                     {{{2
-"   Copyright 2013 Luc Hermitte
+"   Copyright 2013-2019 Luc Hermitte
 "
 "    This program is free software: you can redistribute it and/or modify
 "    it under the terms of the GNU General Public License as published by
@@ -49,37 +52,39 @@ set cpo&vim
 "------------------------------------------------------------------------
 " ## Misc Functions     {{{1
 " # Version {{{2
-let s:k_version = 001
 function! clang#version()
   return s:k_version
 endfunction
 
 " # Debug   {{{2
-let s:verbose = 0
+let s:verbose = get(s:, 'verbose', 0)
 function! clang#verbose(...)
   if a:0 > 0 | let s:verbose = a:1 | endif
   return s:verbose
 endfunction
 
-function! s:Verbose(expr)
+function! s:Log(expr, ...) abort
+  call call('lh#log#this',[a:expr]+a:000)
+endfunction
+
+function! s:Verbose(expr, ...) abort
   if s:verbose
-    echomsg a:expr
+    call call('s:Log',[a:expr]+a:000)
   endif
 endfunction
 
-function! clang#debug(expr)
+function! clang#debug(expr) abort
   return eval(a:expr)
 endfunction
-
 
 "------------------------------------------------------------------------
 " ## Exported functions {{{1
 " # misc {{{2
 " Function: clang#user_options() {{{3
 function! clang#user_options()
-  let res = exists('g:clang_user_options') ? g:clang_user_options : ''
+  let res = get(g:, 'clang_user_options')
         \. ' '
-        \.  exists('b:clang_user_options') ? b:clang_user_options : ''
+        \.  get(b:, 'clang_user_options')
   return res
 endfunction
 
@@ -162,7 +167,7 @@ endfunction
 " # python callbacks {{{2
 " Function: clang#clic_filename() {{{3
 function! clang#clic_filename()
-  let Fn = lh#dev#option#get('clic_filename', &ft, expand('%:p:h').'/.clic/index.db')
+  let Fn = lh#ft#option#get('clic_filename', &ft, expand('%:p:h').'/.clic/index.db')
   if type(Fn) == type(function('has'))
     return Fn()
   elseif type(Fn) == type({}) " BTW dictionnary

@@ -2,9 +2,10 @@
 " File:         ftplugin/c/clang.vim                                    {{{1
 " Author:       Luc Hermitte <EMAIL:hermitte {at} free {dot} fr>
 "		<URL:https://github.com/LucHermitte/vim-clang>
-" Version:      001
+" Version:      2.0.0
+let s:k_version = 200
 " Created:      10th Jan 2013
-" Last Update:  21st Feb 2017
+" Last Update:  21st Nov 2019
 " License:      GPLv3 with exceptions
 "               <URL:http://code.google.com/p/lh-vim/wiki/License>
 "------------------------------------------------------------------------
@@ -15,15 +16,13 @@
 "       minimal solution.
 "
 "------------------------------------------------------------------------
-" Installation:                                                {{{2
-"       Requires: clang_indexer, Vim7+, python, clang_complete, lh-dev, lh-vim-lib
-"       Optional: BTW
-"
 "       Instead of g:clic_filename, this plugin uses, by order of preference:
 "       1- b:clic_filename
 "       2- g:clic_filename
 "       3- {current_path}/.index.db
 " History:                                                     {{{2
+"       v2.0.0:
+"               Reduce dependencies
 "       v0.0.1:
 "               Main code extracted from clang_complete fork aimed at
 "               clang_indexer
@@ -36,7 +35,7 @@
 "       List of members of classes
 "
 " Copying:                                                     {{{2
-"   Copyright 2013 Luc Hermitte
+"   Copyright 2013-2019 Luc Hermitte
 "
 "    This program is free software: you can redistribute it and/or modify
 "    it under the terms of the GNU General Public License as published by
@@ -54,7 +53,6 @@
 " }}}1
 "=============================================================================
 
-let s:k_version = 001
 " Buffer-local Definitions {{{1
 " Avoid local reinclusion {{{2
 if &cp || (exists("b:loaded_ftplug_lh_clang")
@@ -104,6 +102,7 @@ let g:loaded_ftplug_lh_clang = s:k_version
 " loaded, like functions that help building a vim-menu for this
 " ftplugin.
 " Functions }}}2
+" }}}1
 "------------------------------------------------------------------------
 let &cpo=s:cpo_save
 "=============================================================================

@@ -6,9 +6,7 @@
     "repository" : {"type": "git", "url": "git://github.com/LucHermitte/vim-clang.git"},
     "dependencies" : {
         "lh-vim-lib" : {"type" : "git", "url" : "git@github.com:LucHermitte/lh-vim-lib.git"},
-        "lh-dev" : {"type": "git", "git": "git@github.com:LucHermitte/lh-dev.git"},
-        "build-tools-wrapper" : {"type": "git", "url": "git@github.com:LucHermitte/vim-build-tools-wrapper.git"},
-        "clang_complete" : {"type": "git", "url": "git://github.com/Rip-Rip/clang_complete.git"}
+        "build-tools-wrapper" : {"type": "git", "url": "git@github.com:LucHermitte/vim-build-tools-wrapper.git"}
     },
     "description" : "VimL script to interact with clang_indexer DB, and libclang",
     "homepage" : "http://github.com/LucHermitte/vim-clang"
