@@ -52,35 +52,76 @@ def getCurrentFile():
   file = "\n".join(vim.eval("getline(1, '$')"))
   return (vim.current.buffer.name, file)
 
-def getCurrentTranslationUnit(args, currentFile, fileName):
+def computeCurrentTranslationUnit(args, currentFile, fileName):
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
+  return tu
+
+def getSystemCompilationOptions():
+  return vim.eval('clang#system_options()')
+
+def getCompilationDatabase():
+  cdb_path = vim.eval('clang#compilation_database_path()')
+  if not cdb_path:
+    return None
   global debug
   if debug:
-    print(tu)
+    print("Compilation database found in %s" % (cdb_path,))
+  return CompilationDatabase.fromDirectory(cdb_path)
+
+def getCompilationOptions(filename):
+  global debug
+  options = getSystemCompilationOptions()
+  user_options = vim.eval("clang#user_options()")
+  options += user_options
+  if debug:
+    print("system options: %s"%(options))
+    print("user   options: %s"%(user_options))
+  cdb = getCompilationDatabase()
+  if cdb:
+    cdbOptions = cdb.getCompileCommands(filename)
+    if not cdbOptions:
+      # TODO: In case this is a header file, need to find options elsewhere
+      pass
+    else:
+      for cmd in cdbOptions:
+        if debug:
+          print("cmd: %s"%[arg for arg in cmd.arguments])
+        options += [arg  for arg in cmd.arguments if arg and arg[0]=='-']
+        # TODO: keep only -i*, -I*, -std*, -D*
+  return options
+
+# Translation units are cached according to the revision number of the
+# associated buffer.
+# @todo purge translation units associated to discarded buffers
+# @require: exists('*undotree')
+tus = {}
+def getCurrentTranslationUnit(force_update = False):
+  global tus
+  global debug
+  filename = vim.current.buffer.name
+  revnumber = vim.eval('undotree().seq_cur')
+  tu_data = tus.get(filename)
+  need_to_update = force_update or not tu_data or tu_data['revnumber'] != revnumber
+  if debug:
+    print("Updating TU for %s: %s (force: %s, revnumber: %s VS %s)"
+        % (filename, need_to_update, force_update, revnumber,
+          tu_data and tu_data['revnumber']))
+  # + need to update if clang compilation DB has been updated
+  if not need_to_update:
+    return tu_data['tu']
+
+  options = getCompilationOptions(filename)
+  tu = computeCurrentTranslationUnit(options, getCurrentFile(), filename)
+  tus[filename] = {'revnumber': revnumber, 'tu': tu}
   return tu
+
 
 #======================================================================
 def getCurrentUsr():
   global debug
   debug = int(vim.eval("clang#verbose()")) == 1
-  userOptions = splitOptions(vim.eval("clang#user_options()"))
-
-  cdb_path = vim.eval('clang#compilation_database_path()')
-  if cdb_path:
-    cdb = CompilationDatabase.fromDirectory(cdb_path)
-    file_args = cdb.getCompileCommands(vim.current.buffer.name)
-    for cmd in file_args:
-      print("cmd: %s"%[arg for arg in cmd.arguments])
-      userOptions+=[arg  for arg in cmd.arguments if arg and arg[0]=='-']
-
-  if debug:
-    print("userOptions: %s" % (userOptions))
-  # params = getCompileParams(vim.current.buffer.name)
-  # timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
-  tu = getCurrentTranslationUnit(
-      userOptions, getCurrentFile(),
-      vim.current.buffer.name) #, timer, update = True)
+  tu = getCurrentTranslationUnit()
   file = tu.get_file(vim.current.buffer.name)
   loc = tu.get_location(file.name, (getCurrentLine(), getCurrentColumn()))
   cursor = Cursor.from_location(tu, loc)
