@@ -38,6 +38,12 @@ def _is_null_cursor(self):
 Cursor.nullCursor = staticmethod(_null_cursor)
 Cursor.isNull     = _is_null_cursor
 
+def _get_template_cursor_kind(self):
+  from clang.cindex import conf
+  tk = conf.lib.clang_getTemplateCursorKind(self)
+  return CursorKind.from_id(tk)
+
+Cursor.get_template_cursor_kind = _get_template_cursor_kind
 
 #======================================================================
 def getCurrentLine():
@@ -82,13 +88,16 @@ def getCompilationOptions(filename):
     cdbOptions = cdb.getCompileCommands(filename)
     if not cdbOptions:
       # TODO: In case this is a header file, need to find options elsewhere
+      # -> It seems header files are add into the compilation database
       pass
     else:
+      # keep only -i*, -I*, -std*, -D*, --driver
+      matcher = re.compile('-[iIDsW]|--driver')
       for cmd in cdbOptions:
         if debug:
           print("cmd: %s"%[arg for arg in cmd.arguments])
-        options += [arg  for arg in cmd.arguments if arg and arg[0]=='-']
-        # TODO: keep only -i*, -I*, -std*, -D*
+          # print("good: %s"%[arg for arg in cmd.arguments if arg and matcher.match(arg)])
+        options += [arg for arg in cmd.arguments if arg and matcher.match(arg)]
   return options
 
 # Translation units are cached according to the revision number of the
@@ -112,10 +121,147 @@ def getCurrentTranslationUnit(force_update = False):
     return tu_data['tu']
 
   options = getCompilationOptions(filename)
+  if debug:
+    print("OPTIONS: %s"%options)
   tu = computeCurrentTranslationUnit(options, getCurrentFile(), filename)
   tus[filename] = {'revnumber': revnumber, 'tu': tu}
   return tu
 
+#======================================================================
+def getCurrentCursor():
+  global debug
+  tu = getCurrentTranslationUnit()
+  file = tu.get_file(vim.current.buffer.name)
+  loc = tu.get_location(file.name, (getCurrentLine(), getCurrentColumn()))
+  cursor = Cursor.from_location(tu, loc)
+  if debug:
+    print("Location:", loc)
+    print("Cursor:", cursor.displayname)
+  return cursor
+
+#======================================================================
+k_function_kinds = [
+    CursorKind.CONSTRUCTOR,
+    CursorKind.CONVERSION_FUNCTION,
+    CursorKind.CXX_METHOD,
+    CursorKind.DESTRUCTOR,
+    CursorKind.FUNCTION_DECL,
+    CursorKind.FUNCTION_TEMPLATE,
+    ]
+
+k_pointer_types = [
+    TypeKind.MEMBERPOINTER,
+    TypeKind.POINTER,
+    ]
+k_function_types = [
+    TypeKind.FUNCTIONNOPROTO,
+    TypeKind.FUNCTIONPROTO,
+    ]
+k_array_types = [
+    TypeKind.CONSTANTARRAY,
+    TypeKind.VECTOR,
+    TypeKind.INCOMPLETEARRAY,
+    TypeKind.VARIABLEARRAY,
+    TypeKind.DEPENDENTSIZEDARRAY
+    ]
+def decodeType(type):
+  res = {
+      'spelling': type.spelling,
+      'kind': type.kind,
+      'num_template_arguments': type.get_num_template_arguments(),
+      # 'canonical': type.get_canonical(),
+      'const': type.is_const_qualified(),
+      'volatile': type.is_volatile_qualified(),
+      'restrict': type.is_restrict_qualified(),
+      'adress_space': type.get_address_space(),
+      'typedef_name': type.get_typedef_name(),
+      # 'class_type': type.get_class_type(),
+      # 'named_type': type.get_named_type(),
+      'pod': type.is_pod(),
+      'align': type.get_align(),
+      'size': type.get_size(),
+      'ref_qualifier': type.get_ref_qualifier()
+      }
+  if type.kind in k_function_types:
+    res['result']        = decodeType(type.get_result())
+  elif type.kind in k_array_types:
+    res['element_type']  = type.element_type()
+    res['element_count'] = type.element_count()
+  elif type.kind in k_pointer_types:
+    res['pointee']       = decodeType(type.get_pointee())
+  return res
+
+def decodeArgument(cursor):
+  res = {
+      'type': decodeType(cursor.type),
+      'spelling': cursor.spelling
+      }
+  return res
+
+def decodeFunction(cursor):
+  assert(cursor.kind in k_function_kinds)
+  print("is_definition               : ", cursor.is_definition())
+  print("is_const_method             : ", cursor.is_const_method())
+  print("is_default_method           : ", cursor.is_default_method())
+  print("access_specifier            : ", cursor.access_specifier)
+  # parameters?
+  print("get_arguments()             : ", [decodeArgument(arg) for arg in cursor.get_arguments()])
+  print("children: ", [decodeCursor(ch) for ch in cursor.get_children()])
+  # template?
+  if cursor.kind == CursorKind.FUNCTION_TEMPLATE:
+    true_kind = cursor.get_template_cursor_kind()
+    print('True kind', true_kind)
+
+
+    # From the moment, we obtain a FUNCTION_TEMPLATE, (priority >
+    # CONSTRUCTOR...), get_arguments() is empty, and yet
+    # get_num_template_arguments() is -1
+    # print("def: ", decodeCursor(cursor.get_definition())) <- inf loop!
+    # print("parent: ", decodeCursor(cursor.semantic_parent)) <- class e.g.
+    # print("walk: ", [decodeCursor(ch) for ch in cursor.walk_preorder() if ch != cursor])
+    nb_tpl = cursor.get_num_template_arguments()
+    print("get_num_template_arguments: ", nb_tpl)
+    for i in range(nb_tpl):
+      tpl_kind = cursor.get_template_argument_kind(i)
+      print("  kind[%s]: %s"%(i, tpl_kind))
+      if   tpl_kind in [TemplateArgumentKind.TYPE]:
+        print("  type[%s]: %s"%(i, cursor.get_template_argument_type(i)))
+      elif tpl_kind in [TemplateArgumentKind.INTEGRAL]:
+        print("  value[%s]: %s"%(i, cursor.get_template_argument_value(i)))
+  # Constructor kinds
+  print("is_converting_constructor   : ", cursor.is_converting_constructor())
+  print("is_copy_constructor         : ", cursor.is_copy_constructor())
+  print("is_default_constructor      : ", cursor.is_default_constructor())
+  print("is_move_constructor         : ", cursor.is_move_constructor())
+  # The function type, i.e. its signature somehow
+  print("type                        : ", decodeType(cursor.type))
+  # return ?
+  print("result_type                 : ", decodeType(cursor.result_type))
+  # exception ?
+  print("exception_specification_kind: ", cursor.exception_specification_kind)
+  # static/override/final/virtual?
+  print("is_virtual_method           : ", cursor.is_virtual_method())
+  print("is_pure_virtual_method      : ", cursor.is_pure_virtual_method())
+  print("is_static_method            : ", cursor.is_static_method())
+  # align?
+
+def decodeCursor(cursor):
+  res = {
+      "spelling " : cursor.spelling,
+      "kind "     : cursor.kind
+      }
+  if cursor.kind in k_function_kinds:
+    decodeFunction(cursor)
+  elif cursor.kind in [CursorKind.PARM_DECL]:
+    res.update(decodeArgument(cursor))
+  return res
+
+def getCurrentSymbol():
+  global debug
+  debug = int(vim.eval("clang#verbose()")) == 1
+  cursor = getCurrentCursor()
+  return decodeCursor(cursor)
+  # print("mangled_name ", cursor.mangled_name)
 
 #======================================================================
 def getCurrentUsr():

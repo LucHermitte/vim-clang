@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  21st Nov 2019
+" Last Update:  22nd Nov 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -106,26 +106,43 @@ endfunction
 
 " Function: clang#compilation_database() {{{3
 function! clang#compilation_database() abort
-  let filename = lh#option#get('BTW.compilation_dir').'/compile_commands.json'
-  let found = filereadable(filename)
-  call s:Verbose("Compilation database ".(found ? "found: '%1'" : "not found"), filename)
-  return filename
+  let filename = lh#option#get('BTW.compilation_dir')
+  if lh#option#is_set(filename)
+    let filename .= .'/compile_commands.json'
+    let found = filereadable(filename)
+    call s:Verbose("Compilation database ".(found ? "found: '%1'" : "not found"), filename)
+    return filename
+  else
+    return ''
+  endif
 endfunction
 
 " Function: clang#compilation_database_path() {{{3
 function! clang#compilation_database_path() abort
-  return fnamemodify(clang#compilation_database(), ':p:h')
+  let p = clang#compilation_database()
+  return empty(p) ? p : fnamemodify(p, ':p:h')
+endfunction
+
+" Function: clang#system_options(...) {{{3
+let s:k_compilers =
+      \ { 'c':   'clang'
+      \ , 'cpp': 'clang++'
+      \ }
+function! clang#system_options(...) abort
+  let compiler = get(a:, 1, get(s:k_compilers, &ft, 'clang++'))
+  let options = map(copy(lh#cpp#tags#compiler_includes(compiler)), '"-isystem".v:val')
+  return options
 endfunction
 
 " Function: clang#user_options() {{{3
 function! clang#user_options() abort
-  let system = map(copy(lh#cpp#tags#compiler_includes('clang++')), '"-isystem".v:val')
-  let res = get(g:, 'clang_user_options')
-        \. ' '
-        \. get(b:, 'clang_user_options')
-        \. ' '
-        \. join(system, ' ')
+  let res = get(g:, 'clang_user_options', []) + get(b:, 'clang_user_options', [])
   return res
+endfunction
+
+" Function: clang#get_symbol() {{{3
+function! clang#get_symbol() abort
+  pythonx print(getCurrentSymbol())
 endfunction
 
 " # misc {{{2
@@ -200,7 +217,7 @@ function! clang#_init_python() abort
   " clang_complete python part is expected to be already initialized
   call s:Verbose("Importing ".s:clangpy_script)
   pyx << EOF
-import sys
+import sys, vim
 plugin_root_path = vim.eval('s:plugin_root_path')
 if not plugin_root_path in sys.path:
   sys.path = [ plugin_root_path ] + sys.path
@@ -229,7 +246,7 @@ endfunction
 " Function: clang#get_currentusr() {{{3
 function! clang#get_currentusr() abort
   call s:CheckUseLibrary()
-  pythonx print getCurrentUsr()
+  pythonx print(getCurrentUsr())
 endfunction
 
 " Function: clang#get_references(what) {{{3
