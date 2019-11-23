@@ -268,7 +268,8 @@ def decodeFunction(cursor):
   res['access_specifier']  = decodeAccessSpecifier(cursor.access_specifier)
   # parameters?
   # print("get_arguments()             : ", [decodeArgument(arg) for arg in cursor.get_arguments()])
-  # print("children: ", [decodeCursor(ch) for ch in cursor.get_children()])
+  res['children'] = [decodeCursor(ch) for ch in cursor.get_children()]
+  # +-> When it's template, it seems we don't get normal parameters....
   # template?
   if cursor.kind == CursorKind.FUNCTION_TEMPLATE:
     true_kind = cursor.get_template_cursor_kind()
