@@ -164,10 +164,20 @@ k_array_types = [
     TypeKind.VARIABLEARRAY,
     TypeKind.DEPENDENTSIZEDARRAY
     ]
+
+def decodeRefQualifier(kind):
+  from clang.cindex import RefQualifierKind
+  if kind == RefQualifierKind.NONE:
+    return 'none'
+  elif kind == RefQualifierKind.LVALUE:
+    return 'lvalue'
+  elif kind == RefQualifierKind.RVALUE:
+    return 'rvalue'
+
 def decodeType(type):
   res = {
       'spelling': type.spelling,
-      'kind': type.kind,
+      'kind': typeKinds.get(type.kind, type.kind.name),
       'num_template_arguments': type.get_num_template_arguments(),
       # 'canonical': type.get_canonical(),
       'const': type.is_const_qualified(),
@@ -180,7 +190,7 @@ def decodeType(type):
       'pod': type.is_pod(),
       'align': type.get_align(),
       'size': type.get_size(),
-      'ref_qualifier': type.get_ref_qualifier()
+      'ref_qualifier': decodeRefQualifier(type.get_ref_qualifier())
       }
   if type.kind in k_function_types:
     res['result']        = decodeType(type.get_result())
@@ -198,20 +208,70 @@ def decodeArgument(cursor):
       }
   return res
 
+def decodeAccessSpecifier(access_specifier):
+  from clang.cindex import AccessSpecifier
+  if access_specifier == AccessSpecifier.PUBLIC:
+    return 'public'
+  elif access_specifier == AccessSpecifier.PROTECTED:
+    return 'protected'
+  elif access_specifier == AccessSpecifier.PRIVATE:
+    return 'private'
+  elif access_specifier == AccessSpecifier.NONE:
+    return 'none'
+  else:
+    return '???'
+
+def decodeConstructorKind(cursor):
+  if cursor.is_converting_constructor():
+    return 'converting'
+  elif cursor.is_copy_constructor():
+    return 'copy'
+  elif cursor.is_move_constructor():
+    return 'move'
+  elif cursor.is_default_constructor():
+    return 'default'
+  else:
+    return ''
+
+def decodeExceptionSpecificationKind(kind):
+  from clang.cindex import ExceptionSpecificationKind
+  if kind == ExceptionSpecificationKind.NONE:
+    return 'none'
+  elif kind == ExceptionSpecificationKind.DYNAMIC_NONE:
+    return 'dynamic_none'
+  elif kind == ExceptionSpecificationKind.DYNAMIC:
+    return 'dynamic'
+  elif kind == ExceptionSpecificationKind.MS_ANY:
+    return 'ms_any'
+  elif kind == ExceptionSpecificationKind.BASIC_NOEXCEPT:
+    return 'basic_noexcept'
+  elif kind == ExceptionSpecificationKind.COMPUTED_NOEXCEPT:
+    return 'computed_noexcept'
+  elif kind == ExceptionSpecificationKind.UNEVALUATED:
+    return 'unevaluated'
+  elif kind == ExceptionSpecificationKind.UNINSTANTIATED:
+    return 'uninstantiated'
+  elif kind == ExceptionSpecificationKind.UNPARSED:
+    return 'unparsed'
+
 def decodeFunction(cursor):
+  # libclang doesn't permit to know
+  # - whether it's constexpr
+  # - whether it's volatile
+  # - whether it has been =deleted 
+  res = {}
   assert(cursor.kind in k_function_kinds)
-  print("is_definition               : ", cursor.is_definition())
-  print("is_const_method             : ", cursor.is_const_method())
-  print("is_default_method           : ", cursor.is_default_method())
-  print("access_specifier            : ", cursor.access_specifier)
+  true_kind = cursor.kind
+  res['is_definition']     = cursor.is_definition()
+  res['const']             = cursor.is_const_method()
+  res['is_default_method'] = cursor.is_default_method()
+  res['access_specifier']  = decodeAccessSpecifier(cursor.access_specifier)
   # parameters?
-  print("get_arguments()             : ", [decodeArgument(arg) for arg in cursor.get_arguments()])
-  print("children: ", [decodeCursor(ch) for ch in cursor.get_children()])
+  # print("get_arguments()             : ", [decodeArgument(arg) for arg in cursor.get_arguments()])
+  # print("children: ", [decodeCursor(ch) for ch in cursor.get_children()])
   # template?
   if cursor.kind == CursorKind.FUNCTION_TEMPLATE:
     true_kind = cursor.get_template_cursor_kind()
-    print('True kind', true_kind)
-
 
     # From the moment, we obtain a FUNCTION_TEMPLATE, (priority >
     # CONSTRUCTOR...), get_arguments() is empty, and yet
@@ -219,39 +279,43 @@ def decodeFunction(cursor):
     # print("def: ", decodeCursor(cursor.get_definition())) <- inf loop!
     # print("parent: ", decodeCursor(cursor.semantic_parent)) <- class e.g.
     # print("walk: ", [decodeCursor(ch) for ch in cursor.walk_preorder() if ch != cursor])
-    nb_tpl = cursor.get_num_template_arguments()
-    print("get_num_template_arguments: ", nb_tpl)
-    for i in range(nb_tpl):
-      tpl_kind = cursor.get_template_argument_kind(i)
-      print("  kind[%s]: %s"%(i, tpl_kind))
-      if   tpl_kind in [TemplateArgumentKind.TYPE]:
-        print("  type[%s]: %s"%(i, cursor.get_template_argument_type(i)))
-      elif tpl_kind in [TemplateArgumentKind.INTEGRAL]:
-        print("  value[%s]: %s"%(i, cursor.get_template_argument_value(i)))
+    #nb_tpl = cursor.get_num_template_arguments()
+    #print("get_num_template_arguments: ", nb_tpl)
+    #for i in range(nb_tpl):
+    #  tpl_kind = cursor.get_template_argument_kind(i)
+    #  print("  kind[%s]: %s"%(i, tpl_kind))
+    #  if   tpl_kind in [TemplateArgumentKind.TYPE]:
+    #    print("  type[%s]: %s"%(i, cursor.get_template_argument_type(i)))
+    #  elif tpl_kind in [TemplateArgumentKind.INTEGRAL]:
+    #    print("  value[%s]: %s"%(i, cursor.get_template_argument_value(i)))
+
+  res['true_kind']         = str(true_kind)
+
   # Constructor kinds
-  print("is_converting_constructor   : ", cursor.is_converting_constructor())
-  print("is_copy_constructor         : ", cursor.is_copy_constructor())
-  print("is_default_constructor      : ", cursor.is_default_constructor())
-  print("is_move_constructor         : ", cursor.is_move_constructor())
+  if true_kind == CursorKind.CONSTRUCTOR:
+    res['constructor_kind'] = decodeConstructorKind(cursor)
+    
   # The function type, i.e. its signature somehow
-  print("type                        : ", decodeType(cursor.type))
+  res['type'] = decodeType(cursor.type)
   # return ?
-  print("result_type                 : ", decodeType(cursor.result_type))
+  res['result_type'] = decodeType(cursor.result_type)
   # exception ?
-  print("exception_specification_kind: ", cursor.exception_specification_kind)
+  res['exception_specification_kind'] = decodeExceptionSpecificationKind(cursor.exception_specification_kind)
   # static/override/final/virtual?
-  print("is_virtual_method           : ", cursor.is_virtual_method())
-  print("is_pure_virtual_method      : ", cursor.is_pure_virtual_method())
-  print("is_static_method            : ", cursor.is_static_method())
+  res['virtual'] = cursor.is_virtual_method()
+  res['pure'] = cursor.is_pure_virtual_method()
+  res['static'] = cursor.is_static_method()
   # align?
+  return res
 
 def decodeCursor(cursor):
+  # print(dir(cursor.kind))
   res = {
       "spelling " : cursor.spelling,
-      "kind "     : cursor.kind
+      "kind "     : str(cursor.kind)
       }
   if cursor.kind in k_function_kinds:
-    decodeFunction(cursor)
+    res.update(decodeFunction(cursor))
   elif cursor.kind in [CursorKind.PARM_DECL]:
     res.update(decodeArgument(cursor))
   return res
@@ -557,6 +621,61 @@ referenceKinds = dict({
 603 : 'friend declaration',
 })
 
+typeKinds = dict({
+0 : 'INVALID',
+1 : 'UNEXPOSED',
+2 : 'VOID',
+3 : 'BOOL',
+4 : 'CHAR_U',
+5 : 'UCHAR',
+6 : 'CHAR16',
+7 : 'CHAR32',
+8 : 'USHORT',
+9 : 'UINT',
+10 : 'ULONG',
+11 : 'ULONGLONG',
+12 : 'UINT128',
+13 : 'CHAR_S',
+14 : 'SCHAR',
+15 : 'WCHAR',
+16 : 'SHORT',
+17 : 'INT',
+18 : 'LONG',
+19 : 'LONGLONG',
+20 : 'INT128',
+21 : 'FLOAT',
+22 : 'DOUBLE',
+23 : 'LONGDOUBLE',
+24 : 'NULLPTR',
+25 : 'OVERLOAD',
+26 : 'DEPENDENT',
+27 : 'OBJCID',
+28 : 'OBJCCLASS',
+29 : 'OBJCSEL',
+30 : 'FLOAT128',
+31 : 'HALF',
+100 : 'COMPLEX',
+101 : 'POINTER',
+102 : 'BLOCKPOINTER',
+103 : 'LVALUEREFERENCE',
+104 : 'RVALUEREFERENCE',
+105 : 'RECORD',
+106 : 'ENUM',
+107 : 'TYPEDEF',
+108 : 'OBJCINTERFACE',
+109 : 'OBJCOBJECTPOINTER',
+110 : 'FUNCTIONNOPROTO',
+111 : 'FUNCTIONPROTO',
+112 : 'CONSTANTARRAY',
+113 : 'VECTOR',
+114 : 'INCOMPLETEARRAY',
+115 : 'VARIABLEARRAY',
+116 : 'DEPENDENTSIZEDARRAY',
+117 : 'MEMBERPOINTER',
+118 : 'AUTO',
+119 : 'ELABORATED',
+120 : 'PIPE'
+  })
 #======================================================================
 def initVimClang(library_path = None):
   global index

@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  22nd Nov 2019
+" Last Update:  23rd Nov 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -142,7 +142,9 @@ endfunction
 
 " Function: clang#get_symbol() {{{3
 function! clang#get_symbol() abort
-  pythonx print(getCurrentSymbol())
+  " pyx print(getCurrentSymbol())
+  let res = pyxeval('getCurrentSymbol()')
+  return res
 endfunction
 
 " # misc {{{2
