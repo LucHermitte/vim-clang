@@ -1,3 +1,5 @@
+namespace  NS1
+{
 struct S {
     void f(int i, float);
     void g(double d) const;
@@ -15,4 +17,14 @@ struct S {
 struct S2 {
     int v() override;
     int pure() final;
+    class C {
+        C() = default;
+    };
 };
+
+template <typename T, int N> struct array {
+    void f();
+    T tab[N];
+};
+}
+

@@ -140,6 +140,14 @@ def getCurrentCursor():
   return cursor
 
 #======================================================================
+k_class_kinds = [
+    CursorKind.CLASS_DECL,
+    CursorKind.STRUCT_DECL,
+    CursorKind.UNION_DECL,
+    CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION,
+    CursorKind.CLASS_TEMPLATE,
+    ]
+
 k_function_kinds = [
     CursorKind.CONSTRUCTOR,
     CursorKind.CONVERSION_FUNCTION,
@@ -254,11 +262,17 @@ def decodeExceptionSpecificationKind(kind):
   elif kind == ExceptionSpecificationKind.UNPARSED:
     return 'unparsed'
 
+def findScope(cursor):
+  parent = cursor.semantic_parent
+  if parent:
+    return [parent.spelling] + findScope(parent)
+  return []
+
 def decodeFunction(cursor):
   # libclang doesn't permit to know
   # - whether it's constexpr
   # - whether it's volatile
-  # - whether it has been =deleted 
+  # - whether it has been =deleted
   res = {}
   assert(cursor.kind in k_function_kinds)
   true_kind = cursor.kind
@@ -295,7 +309,7 @@ def decodeFunction(cursor):
   # Constructor kinds
   if true_kind == CursorKind.CONSTRUCTOR:
     res['constructor_kind'] = decodeConstructorKind(cursor)
-    
+
   # The function type, i.e. its signature somehow
   res['type'] = decodeType(cursor.type)
   # return ?
@@ -304,9 +318,26 @@ def decodeFunction(cursor):
   res['exception_specification_kind'] = decodeExceptionSpecificationKind(cursor.exception_specification_kind)
   # static/override/final/virtual?
   res['virtual'] = cursor.is_virtual_method()
-  res['pure'] = cursor.is_pure_virtual_method()
-  res['static'] = cursor.is_static_method()
+  res['pure']    = cursor.is_pure_virtual_method()
+  res['static']  = cursor.is_static_method()
   # align?
+  # scope
+  res['scope'] = findScope(cursor)
+  return res
+
+def decodeClass(cursor):
+  res = {}
+  res['is_definition']          = cursor.is_definition()
+  res['is_scoped_enum']         = cursor.is_scoped_enum()
+  res['access_specifier']       = decodeAccessSpecifier(cursor.access_specifier)
+  res['children']               = [decodeCursor(ch) for ch in cursor.get_children()]
+  res['num_template_arguments'] = cursor.get_num_template_arguments()
+  res['scope']                  = findScope(cursor)
+  return res
+
+def decodeNamespace(cursor):
+  res = {}
+  res['scope'] = findScope(cursor)
   return res
 
 def decodeCursor(cursor):
@@ -319,6 +350,10 @@ def decodeCursor(cursor):
     res.update(decodeFunction(cursor))
   elif cursor.kind in [CursorKind.PARM_DECL]:
     res.update(decodeArgument(cursor))
+  elif cursor.kind == CursorKind.NAMESPACE:
+    res.update(decodeNamespace(cursor))
+  elif cursor.kind in k_class_kinds:
+    res.update(decodeClass(cursor))
   return res
 
 def getCurrentSymbol():
