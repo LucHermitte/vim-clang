@@ -264,9 +264,17 @@ def decodeExceptionSpecificationKind(kind):
 
 def findScope(cursor):
   parent = cursor.semantic_parent
-  if parent:
+  # Ignore translation units
+  if parent and parent.kind in [CursorKind.NAMESPACE] + k_class_kinds:
     return [parent.spelling] + findScope(parent)
   return []
+
+def decodeChildren(cursor):
+  res = {}
+  for ch in cursor.get_children():
+    s_kind = str(ch.kind)
+    res[s_kind] = res.get(s_kind, []) + [decodeCursor(ch)]
+  return res
 
 def decodeFunction(cursor):
   # libclang doesn't permit to know
@@ -281,9 +289,10 @@ def decodeFunction(cursor):
   res['is_default_method'] = cursor.is_default_method()
   res['access_specifier']  = decodeAccessSpecifier(cursor.access_specifier)
   # parameters?
-  # print("get_arguments()             : ", [decodeArgument(arg) for arg in cursor.get_arguments()])
-  res['children'] = [decodeCursor(ch) for ch in cursor.get_children()]
-  # +-> When it's template, it seems we don't get normal parameters....
+  # res["get_arguments"]     = [decodeArgument(arg) for arg in cursor.get_arguments()]
+  res['children']          = decodeChildren(cursor)
+  # NB: when there are errors (e.g. unknown parameter types), children are not
+  # reported...
   # template?
   if cursor.kind == CursorKind.FUNCTION_TEMPLATE:
     true_kind = cursor.get_template_cursor_kind()
@@ -291,18 +300,6 @@ def decodeFunction(cursor):
     # From the moment, we obtain a FUNCTION_TEMPLATE, (priority >
     # CONSTRUCTOR...), get_arguments() is empty, and yet
     # get_num_template_arguments() is -1
-    # print("def: ", decodeCursor(cursor.get_definition())) <- inf loop!
-    # print("parent: ", decodeCursor(cursor.semantic_parent)) <- class e.g.
-    # print("walk: ", [decodeCursor(ch) for ch in cursor.walk_preorder() if ch != cursor])
-    #nb_tpl = cursor.get_num_template_arguments()
-    #print("get_num_template_arguments: ", nb_tpl)
-    #for i in range(nb_tpl):
-    #  tpl_kind = cursor.get_template_argument_kind(i)
-    #  print("  kind[%s]: %s"%(i, tpl_kind))
-    #  if   tpl_kind in [TemplateArgumentKind.TYPE]:
-    #    print("  type[%s]: %s"%(i, cursor.get_template_argument_type(i)))
-    #  elif tpl_kind in [TemplateArgumentKind.INTEGRAL]:
-    #    print("  value[%s]: %s"%(i, cursor.get_template_argument_value(i)))
 
   res['true_kind']         = str(true_kind)
 
@@ -311,9 +308,9 @@ def decodeFunction(cursor):
     res['constructor_kind'] = decodeConstructorKind(cursor)
 
   # The function type, i.e. its signature somehow
-  res['type'] = decodeType(cursor.type)
+  res['type']               = decodeType(cursor.type)
   # return ?
-  res['result_type'] = decodeType(cursor.result_type)
+  res['result_type']        = decodeType(cursor.result_type)
   # exception ?
   res['exception_specification_kind'] = decodeExceptionSpecificationKind(cursor.exception_specification_kind)
   # static/override/final/virtual?
@@ -330,21 +327,23 @@ def decodeClass(cursor):
   res['is_definition']          = cursor.is_definition()
   res['is_scoped_enum']         = cursor.is_scoped_enum()
   res['access_specifier']       = decodeAccessSpecifier(cursor.access_specifier)
-  res['children']               = [decodeCursor(ch) for ch in cursor.get_children()]
+  res['children']               = decodeChildren(cursor)
   res['num_template_arguments'] = cursor.get_num_template_arguments()
   res['scope']                  = findScope(cursor)
   return res
 
 def decodeNamespace(cursor):
   res = {}
-  res['scope'] = findScope(cursor)
+  res['scope']    = findScope(cursor)
+  res['children'] = decodeChildren(cursor)
+  res['scope']    = findScope(cursor)
   return res
 
 def decodeCursor(cursor):
   # print(dir(cursor.kind))
   res = {
-      "spelling " : cursor.spelling,
-      "kind "     : str(cursor.kind)
+      "spelling" : cursor.spelling,
+      "kind"     : str(cursor.kind)
       }
   if cursor.kind in k_function_kinds:
     res.update(decodeFunction(cursor))

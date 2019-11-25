@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  23rd Nov 2019
+" Last Update:  25th Nov 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -79,6 +79,11 @@ endfunction
 
 "------------------------------------------------------------------------
 " ## Exported functions {{{1
+" Function: clang#can_plugin_be_used() {{{3
+function! clang#can_plugin_be_used() abort
+  return !empty(clang#libpath())
+endfunction
+
 " # options {{{2
 " Function: clang#libpath() {{{3
 function! clang#libpath() abort
@@ -99,6 +104,8 @@ function! clang#libpath() abort
     call filter(binpaths, '!empty(glob(v:val[:-4]."lib/libclang.so*", 1))')
     if !empty(binpaths)
       let g:clang_library_path = binpaths[0]
+    else
+      let g:clang_library_path = ''
     endif
   endif
   return g:clang_library_path
