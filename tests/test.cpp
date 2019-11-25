@@ -1,3 +1,6 @@
+#include <cstdint>
+#include <cstddef>
+
 namespace  NS1
 {
 struct S {
@@ -9,12 +12,17 @@ struct S {
     virtual int pure() = 0;
     virtual int v();
 
-    template <typename T, std::size_t N> t(T element, unsigned u);
+    template <typename T, std::size_t N> void t(T element, unsigned u);
 
     S() = default;
 };
 
-struct S2 {
+struct S0 {
+    virtual int v();
+    virtual int pure();
+};
+
+struct S2 : S0 {
     int v() override;
     int pure() final;
     class C {
