@@ -269,6 +269,24 @@ def findScope(cursor):
     return [parent.spelling] + findScope(parent)
   return []
 
+def findFunction(cursor):
+  while cursor and not cursor.kind in k_function_kinds:
+    # print("-------", decodeCursor(cursor))
+    cursor = cursor.semantic_parent
+  return cursor
+
+def findClass(cursor):
+  while cursor and not cursor.kind in k_class_kinds:
+    # print("-------", decodeCursor(cursor))
+    cursor = cursor.semantic_parent
+  return cursor
+
+def findNamespace(cursor):
+  while cursor and not cursor.kind in [CursorKind.NAMESPACE]:
+    # print("-------", decodeCursor(cursor))
+    cursor = cursor.semantic_parent
+  return cursor
+
 def decodeChildren(cursor):
   res = {}
   for ch in cursor.get_children():
@@ -355,11 +373,17 @@ def decodeCursor(cursor):
     res.update(decodeClass(cursor))
   return res
 
-def getCurrentSymbol():
+def getCurrentSymbol(what = None):
   global debug
   debug = int(vim.eval("clang#verbose()")) == 1
   cursor = getCurrentCursor()
-  return decodeCursor(cursor)
+  if what == 'function':
+    cursor = findFunction(cursor)
+  elif what == 'class':
+    cursor = findClass(cursor)
+  elif what == 'namespace':
+    cursor = findNamespace(cursor)
+  return cursor and decodeCursor(cursor)
   # print("mangled_name ", cursor.mangled_name)
 
 #======================================================================

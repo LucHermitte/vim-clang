@@ -148,9 +148,10 @@ function! clang#user_options() abort
 endfunction
 
 " Function: clang#get_symbol() {{{3
-function! clang#get_symbol() abort
+function! clang#get_symbol(...) abort
   " pyx print(getCurrentSymbol())
-  let res = pyxeval('getCurrentSymbol()')
+  let what = get(a:, 1, '')
+  let res = pyxeval('getCurrentSymbol(vim.eval("what"))')
   return res
 endfunction
 
