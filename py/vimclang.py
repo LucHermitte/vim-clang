@@ -72,15 +72,33 @@ def getBufferInfo():                                        # {{{2
   revnumber = vim.eval('undotree().seq_cur')
   return [filename, revnumber]
 
+def getCurrentFileType():                                   # {{{2
+  return vim.eval('&ft')
+
 # }}}2
 #======================================================================
 ## Options                               {{{1
+g_system_compilation_flags = {}
+k_compilers = { 'c':   'clang' , 'cpp': 'clang++' }
 def verbose(message):                                       # {{{2
   global debug
   if debug:
     print(message)
 
-def getSystemCompilationOptions():                          # {{{2
+def getSystemCompilationOptions(compiler = None):           # {{{2
+  compiler = compiler or k_compilers[getCurrentFileType()]
+  res = g_system_compilation_flags.get(compiler, [])
+  if res:
+    return res
+  import subprocess
+  result = subprocess.check_output(compiler + ' -E -xc++ - -Wp,-v',
+      stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+      shell=True).decode().splitlines()
+  flags = ['-isystem'+path[1:] for path in result if path and path[0] == ' ']
+  verbose("System flags for %s : %s" % (compiler, flags))
+  g_system_compilation_flags[compiler] = flags
+  return flags
+
   return vim.eval('clang#system_options()')
 
 def getCompilationDatabase():

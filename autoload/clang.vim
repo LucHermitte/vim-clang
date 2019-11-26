@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  25th Nov 2019
+" Last Update:  26th Nov 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -128,17 +128,6 @@ endfunction
 function! clang#compilation_database_path() abort
   let p = clang#compilation_database()
   return empty(p) ? p : fnamemodify(p, ':p:h')
-endfunction
-
-" Function: clang#system_options(...) {{{3
-let s:k_compilers =
-      \ { 'c':   'clang'
-      \ , 'cpp': 'clang++'
-      \ }
-function! clang#system_options(...) abort
-  let compiler = get(a:, 1, get(s:k_compilers, &ft, 'clang++'))
-  let options = map(copy(lh#cpp#tags#compiler_includes(compiler)), '"-isystem".v:val')
-  return options
 endfunction
 
 " Function: clang#user_options() {{{3
