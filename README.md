@@ -110,7 +110,7 @@ and a few more have been added.
 
 Licence:
 --------
-`getReferences()` and `getCurrentUser()` functions are courtesy of exclipy.
+`getReferences()` and `getCurrentUsr()` functions are courtesy of exclipy.
 
 Copyright 2013-2019 Luc Hermitte
 
