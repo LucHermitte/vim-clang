@@ -7,7 +7,7 @@ Module to Interact with libclang (and clang\_indexer DB) from Vim.
 
 Features:
 ---------
-* Provides and API to request information about the symbol under the cursor for Vim
+* Provides an API to request information about the symbol under the cursor for Vim
 * Inter-operates with clang\_indexer DB
     * Displays the references of the C++ symbol under the cursor with `<leader>r`
     * Displays the declaration(s) of the C++ symbol under the cursor with `<leader>d`
@@ -19,24 +19,28 @@ Rationale:
 ----------
 
 While code indexation is already taken care of by LSP servers and plugins like
-COC when plugged with ccls, or clangd, the Language Server Protocol doesn't
-standardize any way to request information about the current code.
+[COC](https://github.com/neoclide/coc.nvim) when plugged with
+[ccls](https://github.com/MaskRay/ccls/), or
+[clangd](https://clang.llvm.org/extra/clangd/), the
+[Language Server Protocol](https://github.com/Microsoft/language-server-protocol)
+doesn't standardize any way to request information about the current code.
 
 From v2 onward, vim-clang new objective is to help building features that need
 information about the code. Typical examples are
 [lh-cpp](https://github.com/LucHermitte/lh-cpp) following commands and
 features that'll be greatly improved by C++ code parsing done by libclang,
 instead of being done in pure vimscript:
-- `:DOX` that generates Doxygen comments
+- [`:DOX`](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Doxygen.md)
+  that generates Doxygen comments
 - `:GOTOIMPL` that generates a function definition from its declaration
 - `:Override` that proposes functions from parent class(es) to override in
   current class.
-- _switch-enum_ that expands a `switch`-snippet with all the values from an
-  enumeration
+- [_switch-enum_](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Enums.md)
+  that expands a `switch`-snippet with all the values from an enumeration
 
 Installation Requirements:
 -------------------------
-* [Vim 7.3+](http://www.vim.org), compiled with python support,
+* [Vim 8.0+](http://www.vim.org), compiled with python support,
 * Python 3.x,
 * [lh-vim-lib](http://github.com/LucHermitte/lh-vim), v4.7.1+
 * libclang,
@@ -45,9 +49,10 @@ Installation Requirements:
 Optional dependencies:
 
 * [BuildToolsWrappers](http://github.com/LucHermitte/vim-build-tools-wrapper),
-  to detect compilation databases
-* my fork of Michael Geddes' [buffer-menu](http://github.com/LucHermitte/lh-misc/blob/master/plugin/buffermenu.vim)
-* [clang\_indexer](https://github.com/LucHermitte/clang_indexer) if you wish to request information to it -- honestly, I'm using COC+ccls nowadays
+  to help detect compilation databases
+* And for the clang\_indexer _deprecated_ features:
+    * my fork of Michael Geddes' [buffer-menu](http://github.com/LucHermitte/lh-misc/blob/master/plugin/buffermenu.vim)
+    * [clang\_indexer](https://github.com/LucHermitte/clang_indexer) if you wish to request information to it -- honestly, I'm using COC+ccls nowadays
 
 With vim-addon-manager, just install `vim-clang`, and let VAM take care of
 installing all the vim dependencies. You'll still have to install Vim, Python,
