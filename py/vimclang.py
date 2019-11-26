@@ -19,6 +19,7 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # }}}1
 #======================================================================
+## Imports                               {{{1
 import vim
 import time
 import re
@@ -27,8 +28,13 @@ import linecache
 from clang.cindex import *
 # import clang.cindex
 
+# }}}1
 #======================================================================
-# Patch to clang_complete cindex.py file
+## Add missing functions to clang.cindex {{{1
+
+# Old patchs to null cursors {{{2
+# This patch may no longer be required
+# TODO: investigate
 # See Issue#1: https://github.com/LucHermitte/vim-clang/issues/1
 def _null_cursor():
   return clang.cindex.conf.lib.clang_getNullCursor()
@@ -38,6 +44,7 @@ def _is_null_cursor(self):
 Cursor.nullCursor = staticmethod(_null_cursor)
 Cursor.isNull     = _is_null_cursor
 
+# New patchs {{{2
 def _get_template_cursor_kind(self):
   from clang.cindex import conf
   tk = conf.lib.clang_getTemplateCursorKind(self)
@@ -45,44 +52,52 @@ def _get_template_cursor_kind(self):
 
 Cursor.get_template_cursor_kind = _get_template_cursor_kind
 
+# }}}2
 #======================================================================
-def getCurrentLine():
+## Vim related functions                 {{{1
+def getCurrentLine():                                       # {{{2
   return int(vim.eval("line('.')"))
 
-def getCurrentColumn():
+def getCurrentColumn():                                     # {{{2
   return int(vim.eval("col('.')"))
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
-def getCurrentFile():
+def getCurrentFile():                                       # {{{2
   file = "\n".join(vim.eval("getline(1, '$')"))
   return (vim.current.buffer.name, file)
 
-def computeCurrentTranslationUnit(args, currentFile, fileName):
-  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
-  tu = index.parse(fileName, args, [currentFile], flags)
-  return tu
+def getBufferInfo():                                        # {{{2
+  filename = vim.current.buffer.name
+  revnumber = vim.eval('undotree().seq_cur')
+  return [filename, revnumber]
 
-def getSystemCompilationOptions():
+# }}}2
+#======================================================================
+## Options                               {{{1
+def verbose(message):                                       # {{{2
+  global debug
+  if debug:
+    print(message)
+
+def getSystemCompilationOptions():                          # {{{2
   return vim.eval('clang#system_options()')
 
 def getCompilationDatabase():
   cdb_path = vim.eval('clang#compilation_database_path()')
   if not cdb_path:
+    verbose("No compilation database found")
     return None
-  global debug
-  if debug:
-    print("Compilation database found in %s" % (cdb_path,))
-  return CompilationDatabase.fromDirectory(cdb_path)
+  else:
+    verbose("Compilation database found in %s" % (cdb_path,))
+    return CompilationDatabase.fromDirectory(cdb_path)
 
-def getCompilationOptions(filename):
-  global debug
+def getCompilationOptions(filename):                        # {{{2
   options = getSystemCompilationOptions()
   user_options = vim.eval("clang#user_options()")
   options += user_options
-  if debug:
-    print("system options: %s"%(options))
-    print("user   options: %s"%(user_options))
+  verbose("system options: %s"%(options))
+  verbose("user   options: %s"%(user_options))
   cdb = getCompilationDatabase()
   if cdb:
     cdbOptions = cdb.getCompileCommands(filename)
@@ -94,12 +109,21 @@ def getCompilationOptions(filename):
       # keep only -i*, -I*, -std*, -D*, --driver
       matcher = re.compile('-[iIDsW]|--driver')
       for cmd in cdbOptions:
-        if debug:
-          print("cmd: %s"%[arg for arg in cmd.arguments])
-          # print("good: %s"%[arg for arg in cmd.arguments if arg and matcher.match(arg)])
+        verbose("cmd: %s"%[arg for arg in cmd.arguments])
+        # verbose("good: %s"%[arg for arg in cmd.arguments if arg and matcher.match(arg)])
         options += [arg for arg in cmd.arguments if arg and matcher.match(arg)]
   return options
 
+# }}}2
+#======================================================================
+## Parse translation unit                {{{1
+# Low level function {{{2
+def computeCurrentTranslationUnit(args, currentFile, fileName):
+  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
+  tu = index.parse(fileName, args, [currentFile], flags)
+  return tu
+
+# Main translation unit accessor {{{2
 # Translation units are cached according to the revision number of the
 # associated buffer.
 # @todo purge translation units associated to discarded buffers
@@ -107,39 +131,25 @@ def getCompilationOptions(filename):
 tus = {}
 def getCurrentTranslationUnit(force_update = False):
   global tus
-  global debug
-  filename = vim.current.buffer.name
-  revnumber = vim.eval('undotree().seq_cur')
+  filename, revnumber = getBufferInfo()
   tu_data = tus.get(filename)
   need_to_update = force_update or not tu_data or tu_data['revnumber'] != revnumber
-  if debug:
-    print("Updating TU for %s: %s (force: %s, revnumber: %s VS %s)"
-        % (filename, need_to_update, force_update, revnumber,
-          tu_data and tu_data['revnumber']))
+  verbose("Updating TU for %s: %s (force: %s, revnumber: %s VS %s)"
+      % (filename, need_to_update, force_update, revnumber,
+        tu_data and tu_data['revnumber']))
   # + need to update if clang compilation DB has been updated
   if not need_to_update:
     return tu_data['tu']
 
   options = getCompilationOptions(filename)
-  if debug:
-    print("OPTIONS: %s"%options)
+  verbose("OPTIONS: %s"%options)
   tu = computeCurrentTranslationUnit(options, getCurrentFile(), filename)
   tus[filename] = {'revnumber': revnumber, 'tu': tu}
   return tu
 
+# }}}2
 #======================================================================
-def getCurrentCursor():
-  global debug
-  tu = getCurrentTranslationUnit()
-  file = tu.get_file(vim.current.buffer.name)
-  loc = tu.get_location(file.name, (getCurrentLine(), getCurrentColumn()))
-  cursor = Cursor.from_location(tu, loc)
-  if debug:
-    print("Location:", loc)
-    print("Cursor:", cursor.displayname)
-  return cursor
-
-#======================================================================
+## Kind families                         {{{1
 k_class_kinds = [
     CursorKind.CLASS_DECL,
     CursorKind.STRUCT_DECL,
@@ -173,7 +183,45 @@ k_array_types = [
     TypeKind.DEPENDENTSIZEDARRAY
     ]
 
-def decodeRefQualifier(kind):
+#======================================================================
+## Positionning cursor                   {{{1
+def getCurrentCursor():                                     # {{{2
+  tu = getCurrentTranslationUnit()
+  file = tu.get_file(vim.current.buffer.name)
+  loc = tu.get_location(file.name, (getCurrentLine(), getCurrentColumn()))
+  cursor = Cursor.from_location(tu, loc)
+  verbose("Location: %s" % (loc,))
+  verbose("Cursor: %s" % (cursor.displayname, ))
+  return cursor
+
+def findScope(cursor):                                      # {{{2
+  parent = cursor.semantic_parent
+  # Ignore translation units
+  if parent and parent.kind in [CursorKind.NAMESPACE] + k_class_kinds:
+    return [parent.spelling] + findScope(parent)
+  return []
+
+def findFunction(cursor):                                   # {{{2
+  while cursor and not cursor.kind in k_function_kinds:
+    # print("-------", decodeCursor(cursor))
+    cursor = cursor.semantic_parent
+  return cursor
+
+def findClass(cursor):                                      # {{{2
+  while cursor and not cursor.kind in k_class_kinds:
+    # print("-------", decodeCursor(cursor))
+    cursor = cursor.semantic_parent
+  return cursor
+
+def findNamespace(cursor):                                  # {{{2
+  while cursor and not cursor.kind in [CursorKind.NAMESPACE]:
+    # print("-------", decodeCursor(cursor))
+    cursor = cursor.semantic_parent
+  return cursor
+# }}}2
+#======================================================================
+## Decoding functions                    {{{1
+def decodeRefQualifier(kind):                               # {{{2
   from clang.cindex import RefQualifierKind
   if kind == RefQualifierKind.NONE:
     return 'none'
@@ -182,7 +230,7 @@ def decodeRefQualifier(kind):
   elif kind == RefQualifierKind.RVALUE:
     return 'rvalue'
 
-def decodeType(type):
+def decodeType(type):                                       # {{{2
   res = {
       'spelling': type.spelling,
       'kind': typeKinds.get(type.kind, type.kind.name),
@@ -209,14 +257,14 @@ def decodeType(type):
     res['pointee']       = decodeType(type.get_pointee())
   return res
 
-def decodeArgument(cursor):
+def decodeArgument(cursor):                                 # {{{2
   res = {
       'type': decodeType(cursor.type),
       'spelling': cursor.spelling
       }
   return res
 
-def decodeAccessSpecifier(access_specifier):
+def decodeAccessSpecifier(access_specifier):                # {{{2
   from clang.cindex import AccessSpecifier
   if access_specifier == AccessSpecifier.PUBLIC:
     return 'public'
@@ -229,7 +277,7 @@ def decodeAccessSpecifier(access_specifier):
   else:
     return '???'
 
-def decodeConstructorKind(cursor):
+def decodeConstructorKind(cursor):                          # {{{2
   if cursor.is_converting_constructor():
     return 'converting'
   elif cursor.is_copy_constructor():
@@ -241,7 +289,7 @@ def decodeConstructorKind(cursor):
   else:
     return ''
 
-def decodeExceptionSpecificationKind(kind):
+def decodeExceptionSpecificationKind(kind):                 # {{{2
   from clang.cindex import ExceptionSpecificationKind
   if kind == ExceptionSpecificationKind.NONE:
     return 'none'
@@ -262,39 +310,14 @@ def decodeExceptionSpecificationKind(kind):
   elif kind == ExceptionSpecificationKind.UNPARSED:
     return 'unparsed'
 
-def findScope(cursor):
-  parent = cursor.semantic_parent
-  # Ignore translation units
-  if parent and parent.kind in [CursorKind.NAMESPACE] + k_class_kinds:
-    return [parent.spelling] + findScope(parent)
-  return []
-
-def findFunction(cursor):
-  while cursor and not cursor.kind in k_function_kinds:
-    # print("-------", decodeCursor(cursor))
-    cursor = cursor.semantic_parent
-  return cursor
-
-def findClass(cursor):
-  while cursor and not cursor.kind in k_class_kinds:
-    # print("-------", decodeCursor(cursor))
-    cursor = cursor.semantic_parent
-  return cursor
-
-def findNamespace(cursor):
-  while cursor and not cursor.kind in [CursorKind.NAMESPACE]:
-    # print("-------", decodeCursor(cursor))
-    cursor = cursor.semantic_parent
-  return cursor
-
-def decodeChildren(cursor):
+def decodeChildren(cursor):                                 # {{{2
   res = {}
   for ch in cursor.get_children():
     s_kind = str(ch.kind)
     res[s_kind] = res.get(s_kind, []) + [decodeCursor(ch)]
   return res
 
-def decodeFunction(cursor):
+def decodeFunction(cursor):                                 # {{{2
   # libclang doesn't permit to know
   # - whether it's constexpr
   # - whether it's volatile
@@ -340,7 +363,7 @@ def decodeFunction(cursor):
   res['scope'] = findScope(cursor)
   return res
 
-def decodeClass(cursor):
+def decodeClass(cursor):                                    # {{{2
   res = {}
   res['is_definition']          = cursor.is_definition()
   res['is_scoped_enum']         = cursor.is_scoped_enum()
@@ -350,14 +373,14 @@ def decodeClass(cursor):
   res['scope']                  = findScope(cursor)
   return res
 
-def decodeNamespace(cursor):
+def decodeNamespace(cursor):                                # {{{2
   res = {}
   res['scope']    = findScope(cursor)
   res['children'] = decodeChildren(cursor)
   res['scope']    = findScope(cursor)
   return res
 
-def decodeExtent(sourceLocation):
+def decodeExtent(sourceLocation):                           # {{{2
   res = {
       'start' : {
         'line': sourceLocation.start.line,
@@ -370,7 +393,7 @@ def decodeExtent(sourceLocation):
       }
   return res
 
-def decodeCursor(cursor):
+def decodeCursor(cursor):                                   # {{{2
   # print(dir(cursor.kind))
   res = {
       "spelling" : cursor.spelling,
@@ -387,7 +410,7 @@ def decodeCursor(cursor):
     res.update(decodeClass(cursor))
   return res
 
-def getCurrentSymbol(what = None):
+def getCurrentSymbol(what = None):                          # {{{2
   global debug
   debug = int(vim.eval("clang#verbose()")) == 1
   cursor = getCurrentCursor()
@@ -400,7 +423,9 @@ def getCurrentSymbol(what = None):
   return cursor and decodeCursor(cursor)
   # print("mangled_name ", cursor.mangled_name)
 
+# }}}1
 #======================================================================
+## Misc functions                        {{{1
 def getCurrentUsr():
   global debug
   debug = int(vim.eval("clang#verbose()")) == 1
@@ -408,9 +433,8 @@ def getCurrentUsr():
   file = tu.get_file(vim.current.buffer.name)
   loc = tu.get_location(file.name, (getCurrentLine(), getCurrentColumn()))
   cursor = Cursor.from_location(tu, loc)
-  if debug:
-    print("Location:", loc)
-    print("Cursor:", cursor.displayname)
+  verbose("Location: %s" % (loc,))
+  verbose("Cursor: %s" % (cursor.displayname, ))
   ref = cursor.referenced
   if ref is None or ref.isNull():
     return None
@@ -427,7 +451,8 @@ def getCurrentUsr():
 #  return ref.get_usr()
 
 #======================================================================
-class ClicDB:
+## clang-indexer related functions       {{{1
+class ClicDB:                                               # {{{2
   def __init__(self):
     import bsddb.db as db
     filename = vim.eval("clang#clic_filename()")
@@ -450,7 +475,7 @@ class ClicDB:
     return self.clicDb.keys()
 
 #======================================================================
-class QuickFixAdapter:
+class QuickFixAdapter:                                      # {{{2
   def locationToQuickFix(self, location):
     parts = location.split(':')
     if len(parts) != 4:
@@ -490,7 +515,7 @@ class QuickFixAdapter:
 
 
 #======================================================================
-# searchKind is one of ["declarations", "subclasses", None]
+# searchKind is one of ["declarations", "subclasses", None] # {{{2
 def getCurrentReferences(searchKind = None):
   def filtered(quickFixList):
     quickFixList = filter(lambda x: len(x) > 0 and len(x['text']) > 0, quickFixList) # remove invalid items
@@ -527,7 +552,7 @@ def getCurrentReferences(searchKind = None):
   return result
 
 #======================================================================
-def getDeclarations(searchKind, pattern):
+def getDeclarations(searchKind, pattern):                   # {{{2
   clicDb = ClicDB()
   if clicDb is None:
     print("CLIC not loaded")
@@ -563,8 +588,7 @@ def getDeclarations(searchKind, pattern):
   return result
 
 #======================================================================
-
-# Preprocessing                                                                \
+# Preprocessing {{{2
 # CursorKind.* ->
 referenceKinds = dict({
  1 : 'type declaration',
@@ -749,7 +773,9 @@ typeKinds = dict({
 119 : 'ELABORATED',
 120 : 'PIPE'
   })
+# }}}1
 #======================================================================
+## Plugin initialisation                 {{{1
 def initVimClang(library_path = None):
   global index
   #if library_path:
@@ -764,6 +790,6 @@ def initVimClang(library_path = None):
   #global libclangLock
   #libclangLock = threading.Lock()
 
-
+# }}}1
 #======================================================================
-# vim: set ts=2 sts=2 sw=2 expandtab tw=80:
+# vim: set ts=2 sts=2 sw=2 expandtab tw=80 foldmethod=marker:
