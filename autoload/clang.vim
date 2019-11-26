@@ -308,6 +308,16 @@ endfunction
 " }}}1
 let &cpo=s:cpo_save
 "------------------------------------------------------------------------
+" ## Test functions to move elsewhere eventually
+" Function: clang#parents() {{{3
+function! clang#parents() abort
+  let symbol = clang#get_symbol()
+  let children = get(symbol, 'children', {})
+  let parents = get(children, 'CursorKind.CXX_BASE_SPECIFIER', [])
+  let res = lh#list#get(parents, 'spelling')
+  return res
+endfunction
+"------------------------------------------------------------------------
 " ## Initialize module  {{{1
 if empty(lh#python#best_still_avail())
   call lh#notify#once("+python support is required for libclang support")
