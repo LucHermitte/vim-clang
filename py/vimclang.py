@@ -357,11 +357,25 @@ def decodeNamespace(cursor):
   res['scope']    = findScope(cursor)
   return res
 
+def decodeExtent(sourceLocation):
+  res = {
+      'start' : {
+        'line': sourceLocation.start.line,
+        'col': sourceLocation.start.column
+        },
+      'end' : {
+        'line': sourceLocation.end.line,
+        'col': sourceLocation.end.column
+        }
+      }
+  return res
+
 def decodeCursor(cursor):
   # print(dir(cursor.kind))
   res = {
       "spelling" : cursor.spelling,
-      "kind"     : str(cursor.kind)
+      "kind"     : str(cursor.kind),
+      "extent"   : decodeExtent(cursor.extent)
       }
   if cursor.kind in k_function_kinds:
     res.update(decodeFunction(cursor))
