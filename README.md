@@ -1,19 +1,25 @@
-vim-clang
-=========
+# vim-clang [![Last release](https://img.shields.io/github/tag/LucHermitte/vim-clang.svg)](https://github.com/LucHermitte/vim-clang/releases) [![Project Stats](https://www.openhub.net/p/21020/widgets/project_thin_badge.gif)](https://www.openhub.net/p/21020)
 
-Module to Interact with libclang (and clang\_indexer DB) from Vim.
-
-[![Project Stats](https://www.openhub.net/p/21020/widgets/project_thin_badge.gif)](https://www.openhub.net/p/21020)
+Module to interact with libclang (and clang\_indexer DB) from Vim.
 
 Features:
 ---------
-* Provides an API to request information about the symbol under the cursor for Vim
+* Provides an API to request information about the symbol under the cursor for Vim.
 * Inter-operates with clang\_indexer DB
     * Displays the references of the C++ symbol under the cursor with `<leader>r`
     * Displays the declaration(s) of the C++ symbol under the cursor with `<leader>d`
     * Displays the Subclasses of the C++ symbol under the cursor with `<leader>s`
     * Encapsulates the updating of clang\_indexer DB (which requires a project
-      configuration compatible with BuildToolsWrappers format)
+      configuration compatible with BuildToolsWrappers format).
+
+* Works with custom made installations of libclang, even:
+    * when it's installed in a user specific directory instead of `/usr` or
+      `/usr/local`,
+    * or when the default library is not the usual default or your system (e.g.
+      on Linux, I install clang to use libc++ by default instead or libstdc++).
+* Licence compatible with code generation.
+* Can directly be used as long as clang Python bindings are installed; IOW, no
+  need to compile any other library.
 
 Rationale:
 ----------
@@ -30,13 +36,15 @@ information about the code. Typical examples are
 [lh-cpp](https://github.com/LucHermitte/lh-cpp) following commands and
 features that'll be greatly improved by C++ code parsing done by libclang,
 instead of being done in pure vimscript:
-- [`:DOX`](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Doxygen.md)
+- [X] [`:DOX`](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Doxygen.md)
   that generates Doxygen comments
-- `:GOTOIMPL` that generates a function definition from its declaration
-- `:Override` that proposes functions from parent class(es) to override in
+- [ ] `:GOTOIMPL` that generates a function definition from its declaration
+- [ ] `:Override` that proposes functions from parent class(es) to override in
   current class.
-- [_switch-enum_](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Enums.md)
+- [ ] [_switch-enum_](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Enums.md)
   that expands a `switch`-snippet with all the values from an enumeration
+- [ ] List the parent classes of the current class, even from anywhere within a
+  class definition
 
 Installation Requirements:
 -------------------------
@@ -81,12 +89,23 @@ To do list:
 * Reimplements features from lh-dev and `lh-cpp#analysisLib*`.
 
 
+Alternative Solutions:
+----------------------
+* [libclang-vim](https://github.com/libclang-vim/libclang-vim), which requires
+  to compiles a C++ library
+* [cppast](https://github.com/foonathan/cppast), which also requires to
+  compiles a C++ library. However it's meant to provide more and better results
+  than the limited libclang.
+
+  Note: cppast is just an alternative solution to libclang, it doesn't provide
+  any Python binding, nor Vim bindings.
+
 Disclaimer:
 -----------
-This module is a fork of @exclipy's fork of
+This module used to be a fork of @exclipy's fork of
 [clang\_complete](<https://github.com/exclipy/clang_complete>).
 The functions dedicated to the interaction with clang\_indexer have been extracted,
-and a few more will be added.
+and a few more have been added.
 
 
 Licence:
