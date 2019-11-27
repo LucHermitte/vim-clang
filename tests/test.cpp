@@ -33,6 +33,9 @@ struct S2 : S0 {
     };
 };
 
+struct S3 : S2, private S2::C
+{};
+
 template <typename T, int N> struct array {
     void f() {
         int i;
