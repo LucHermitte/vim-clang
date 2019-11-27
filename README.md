@@ -41,10 +41,50 @@ instead of being done in pure vimscript:
 - [ ] `:GOTOIMPL` that generates a function definition from its declaration
 - [ ] `:Override` that proposes functions from parent class(es) to override in
   current class.
+- [ ] `:Ancestors` that lists the parent classes of the current class, even
+  from anywhere within a class definition
+- [ ] `:Constructor` that defines new constructors or assignment operator based
+  on parents and on fields.
+    - will need to detect whether parents and fields are copyable, movable...
 - [ ] [_switch-enum_](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Enums.md)
   that expands a `switch`-snippet with all the values from an enumeration
-- [ ] List the parent classes of the current class, even from anywhere within a
-  class definition
+
+Limitations:
+------------
+
+### Translation Units
+The inspection API provided from V2 can only analyse the current translation
+unit. It has no way (1) to know about declarations made in other translation
+units. While it should not pose any issues regarding base classes, fields,
+functions..., it will not permit to know about other parts of code that makes
+use of/references the symbol inspected.
+
+(1) As of now, I won't plan to actively maintain clang-indexer anymore. Other
+tools like COC+ccls/clangd/... already provide indexing. It's just that we may
+not be able to know more :(
+
+May be there is a way to request references to client code (with COC...), and
+inspect the translation units it belongs to... This needs investigation.
+
+### libclang limitations
+Libclang is quite limited. It only provide information that its maintainer have
+needed elsewhere. That why there are projects like
+[cppast](https://github.com/foonathan/cppast), or other tools based on
+libtooling.
+
+Along the information I've found missing, I've identified so far:
+- If a type isn't known (missing include e.g.), libclang won't return symbols
+  that depends on that type. This means:
+    - it cannot be used to auto-import missing includes
+    - it won't return parameters of unknown types
+- Deleted functions aren't reported (may be if we analyse tokens...?)
+- `get_arguments()` doesn't work on template functions. Hopefully there is a
+  workaround: we can analyse _childrens_.
+- It doesn't report how parameters are formatted, and thus whether newlines are
+  used in between, information I'd need in `:GOTOIMPL`. (may be if we analyse
+  tokens...?)
+- It doesn't report `explicit` constructors (tokens?)
+- It doesn't report `final` member functions (tokens?)
 
 Installation Requirements:
 -------------------------
