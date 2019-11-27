@@ -308,8 +308,8 @@ endfunction
 " }}}1
 let &cpo=s:cpo_save
 "------------------------------------------------------------------------
-" ## Test functions to move elsewhere eventually
-" Function: clang#parents() {{{3
+" ## Test functions to move elsewhere eventually {{{1
+" Function: clang#parents() {{{2
 function! clang#parents() abort
   let symbol = clang#get_symbol()
   let children = get(symbol, 'children', {})

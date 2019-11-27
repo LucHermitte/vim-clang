@@ -398,6 +398,12 @@ def decodeNamespace(cursor):                                # {{{2
   res['scope']    = findScope(cursor)
   return res
 
+def decodeBaseClass(cursor):                                # {{{2
+  res = {}
+  res['access_specifier']  = decodeAccessSpecifier(cursor.access_specifier)
+  res['parent']            = decodeCursor(cursor.referenced)
+  return res
+
 def decodeExtent(sourceLocation):                           # {{{2
   res = {
       'start' : {
@@ -426,6 +432,8 @@ def decodeCursor(cursor):                                   # {{{2
     res.update(decodeNamespace(cursor))
   elif cursor.kind in k_class_kinds:
     res.update(decodeClass(cursor))
+  elif cursor.kind == CursorKind.CXX_BASE_SPECIFIER:
+    res.update(decodeBaseClass(cursor))
   return res
 
 def getCurrentSymbol(what = None):                          # {{{2
