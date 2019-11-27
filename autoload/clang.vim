@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  26th Nov 2019
+" Last Update:  27th Nov 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -311,12 +311,16 @@ let &cpo=s:cpo_save
 " ## Test functions to move elsewhere eventually {{{1
 " Function: clang#parents() {{{2
 function! clang#parents() abort
-  let symbol = clang#get_symbol()
-  let children = get(symbol, 'children', {})
-  let parents = get(children, 'CursorKind.CXX_BASE_SPECIFIER', [])
-  let res = lh#list#get(parents, 'spelling')
-  return res
+  let parents = pyxeval('getParents(findClass())')
+  return parents
 endfunction
+
+" Function: clang#functions() {{{3
+function! clang#functions() abort
+  let functions = pyxeval('getFunctions(findScope())')
+  return functions
+endfunction
+
 "------------------------------------------------------------------------
 " ## Initialize module  {{{1
 if empty(lh#python#best_still_avail())

@@ -212,26 +212,37 @@ def getCurrentCursor():                                     # {{{2
   verbose("Cursor: %s" % (cursor.displayname, ))
   return cursor
 
-def findScope(cursor):                                      # {{{2
+def getScope(cursor = None):                                # {{{2
+  cursor = cursor or getCurrentCursor()
   parent = cursor.semantic_parent
   # Ignore translation units
   if parent and parent.kind in [CursorKind.NAMESPACE] + k_class_kinds:
-    return [parent.spelling] + findScope(parent)
+    return [parent.spelling] + getScope(parent)
   return []
 
-def findFunction(cursor):                                   # {{{2
+def findFunction(cursor = None):                            # {{{2
+  cursor = cursor or getCurrentCursor()
   while cursor and not cursor.kind in k_function_kinds:
     # print("-------", decodeCursor(cursor))
     cursor = cursor.semantic_parent
   return cursor
 
-def findClass(cursor):                                      # {{{2
+def findScope(cursor = None):                               # {{{2
+  cursor = cursor or getCurrentCursor()
+  while cursor and not cursor.kind in [CursorKind.NAMESPACE] + k_class_kinds:
+    # print("-------", decodeCursor(cursor))
+    cursor = cursor.semantic_parent
+  return cursor
+
+def findClass(cursor = None):                               # {{{2
+  cursor = cursor or getCurrentCursor()
   while cursor and not cursor.kind in k_class_kinds:
     # print("-------", decodeCursor(cursor))
     cursor = cursor.semantic_parent
   return cursor
 
-def findNamespace(cursor):                                  # {{{2
+def findNamespace(cursor = None):                           # {{{2
+  cursor = cursor or getCurrentCursor()
   while cursor and not cursor.kind in [CursorKind.NAMESPACE]:
     # print("-------", decodeCursor(cursor))
     cursor = cursor.semantic_parent
@@ -378,7 +389,7 @@ def decodeFunction(cursor):                                 # {{{2
   res['static']  = cursor.is_static_method()
   # align?
   # scope
-  res['scope'] = findScope(cursor)
+  res['scope'] = getScope(cursor)
   return res
 
 def decodeClass(cursor):                                    # {{{2
@@ -388,14 +399,14 @@ def decodeClass(cursor):                                    # {{{2
   res['access_specifier']       = decodeAccessSpecifier(cursor.access_specifier)
   res['children']               = decodeChildren(cursor)
   res['num_template_arguments'] = cursor.get_num_template_arguments()
-  res['scope']                  = findScope(cursor)
+  res['scope']                  = getScope(cursor)
   return res
 
 def decodeNamespace(cursor):                                # {{{2
   res = {}
-  res['scope']    = findScope(cursor)
+  res['scope']    = getScope(cursor)
   res['children'] = decodeChildren(cursor)
-  res['scope']    = findScope(cursor)
+  res['scope']    = getScope(cursor)
   return res
 
 def decodeBaseClass(cursor):                                # {{{2
@@ -448,6 +459,32 @@ def getCurrentSymbol(what = None):                          # {{{2
     cursor = findNamespace(cursor)
   return cursor and decodeCursor(cursor)
   # print("mangled_name ", cursor.mangled_name)
+
+#======================================================================
+# }}}1
+## High level functions                  {{{1
+def getParents(cursor):                                     # {{{2
+  parents = []
+  for node in cursor.get_children():
+    if node.kind == CursorKind.CXX_BASE_SPECIFIER:
+      info = {
+          'name'     : node.referenced.spelling,
+          'spelling' : node.spelling,
+          'access'   : decodeAccessSpecifier(node.access_specifier)
+          }
+      l2_parents = getParents(node.referenced)
+      if l2_parents:
+        info.update({'parents': l2_parents})
+      parents += [info]
+  return parents
+
+def getFunctions(cursor, filter = None):                    # {{{2
+  functions = []
+  for node in cursor.get_children():
+    if node.kind in k_function_kinds:
+      if not filter or filter(node):
+        functions += [decodeFunction(node)]
+  return functions
 
 # }}}1
 #======================================================================
