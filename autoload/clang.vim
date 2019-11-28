@@ -318,9 +318,17 @@ function! clang#parents() abort
   return [parents, crt]
 endfunction
 
-" Function: clang#functions() {{{3
+" Function: clang#functions() {{{2
+" ex: :echo  lh#dict#print_as_tree(pyxeval('getFunctions(findClass(), lambda n: n.is_virtual_method())'))
 function! clang#functions() abort
   let functions = pyxeval('getFunctions(findScope())')
+  return functions
+endfunction
+
+" Function: clang#non_overridden_function() {{{3
+" @return functions from parent class that haven't been overridden
+function! clang#non_overridden_function() abort
+  let functions = pyxeval('getNonOverriddenFunctions(findScope())')
   return functions
 endfunction
 

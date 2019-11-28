@@ -30,6 +30,7 @@ struct S2 : S0 {
     int pure() final;
     class C {
         C() = default;
+        static void f();
     };
 };
 

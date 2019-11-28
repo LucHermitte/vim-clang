@@ -432,6 +432,15 @@ def decodeExtent(sourceLocation):                           # {{{2
       }
   return res
 
+def getLocation(sourceLocation):                            # {{{2
+  # Return start location in format directly compatible w/ setqflist()
+  res = {
+      'filename': sourceLocation.start.file.name,
+      'lnum'    : sourceLocation.start.line,
+      'col'     : sourceLocation.start.column
+      }
+  return res
+
 def decodeCursor(cursor):                                   # {{{2
   # print(dir(cursor.kind))
   res = {
@@ -476,11 +485,7 @@ def getParents(cursor, return_location_current = False):    # {{{2
           'name'     : ref.spelling,
           'spelling' : node.spelling,
           'access'   : decodeAccessSpecifier(node.access_specifier),
-          'location' : {
-            'filename' : ref.extent.start.file.name,
-            'lnum'     : ref.extent.start.line,
-            'col'      : ref.extent.start.column
-            }
+          'location' : getLocation(ref.extent)
           }
       l2_parents = getParents(ref)
       if l2_parents:
@@ -490,11 +495,7 @@ def getParents(cursor, return_location_current = False):    # {{{2
     return parents
   current = {
       'name': cursor.spelling,
-      'location' : {
-        'filename' : cursor.extent.start.file.name,
-        'lnum'     : cursor.extent.start.line,
-        'col'      : cursor.extent.start.column
-        }
+      'location' : getLocation(cursor.extent)
       }
   return parents, current
 
@@ -505,6 +506,35 @@ def getFunctions(cursor, filter = None):                    # {{{2
       if not filter or filter(node):
         functions += [decodeCursor(node)]
   return functions
+
+def getNonOverriddenFunctions(cursor):                      # {{{2
+  # 1- fetch virtual functions from parents
+  parent_functions = []
+  children=cursor.get_children()
+  for node in children:
+    if node.kind == CursorKind.CXX_METHOD and n2.is_virtual_method():
+      new_functions += [node]
+    if node.kind == CursorKind.CXX_BASE_SPECIFIER:
+      baseclass = node.referenced
+      classinfo = {
+          'name'     : baseclass.spelling,
+          'spelling' : node.spelling,
+          'access'   : decodeAccessSpecifier(node.access_specifier),
+          'location' : getLocation(baseclass.extent)
+          }
+      # HERE: get virtual & non final functions from all parents
+      for n2 in baseclass.get_children():
+        if n2.kind == CursorKind.CXX_METHOD and n2.is_virtual_method():
+          parent_functions += [n2]
+      l2_parents = getParents(baseclass)
+      if l2_parents:
+        info.update({'parents': l2_parents})
+      parents += [info]
+
+  # 2- remove functions already overridden
+
+  # 3- convert this function list into a vim compatible list
+  return possible_functions
 
 # }}}1
 #======================================================================
