@@ -384,9 +384,12 @@ def decodeFunction(cursor):                                 # {{{2
   # exception ?
   res['exception_specification_kind'] = decodeExceptionSpecificationKind(cursor.exception_specification_kind)
   # static/override/final/virtual?
-  res['virtual'] = cursor.is_virtual_method()
-  res['pure']    = cursor.is_pure_virtual_method()
-  res['static']  = cursor.is_static_method()
+  res['virtual']  = cursor.is_virtual_method()
+  res['pure']     = cursor.is_pure_virtual_method()
+  res['static']   = cursor.is_static_method()
+  children_kinds  = [child.kind for child in cursor.get_children()]
+  res['override'] = CursorKind.CXX_OVERRIDE_ATTR in children_kinds
+  res['final']    = CursorKind.CXX_FINAL_ATTR in children_kinds
   # align?
   # scope
   res['scope'] = getScope(cursor)
@@ -417,14 +420,14 @@ def decodeBaseClass(cursor):                                # {{{2
 
 def decodeExtent(sourceLocation):                           # {{{2
   res = {
-      'file'  : sourceLocation.start.file,
-      'start' : {
+      'filename': sourceLocation.start.file.name,
+      'start'   : {
         'lnum': sourceLocation.start.line,
-        'col': sourceLocation.start.column
+        'col' : sourceLocation.start.column
         },
-      'end' : {
+      'end'     : {
         'lnum': sourceLocation.end.line,
-        'col': sourceLocation.end.column
+        'col' : sourceLocation.end.column
         }
       }
   return res
@@ -500,7 +503,7 @@ def getFunctions(cursor, filter = None):                    # {{{2
   for node in cursor.get_children():
     if node.kind in k_function_kinds:
       if not filter or filter(node):
-        functions += [decodeFunction(node)]
+        functions += [decodeCursor(node)]
   return functions
 
 # }}}1

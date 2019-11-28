@@ -41,7 +41,7 @@ instead of being done in pure vimscript:
 - [ ] `:GOTOIMPL` that generates a function definition from its declaration
 - [ ] `:Override` that proposes functions from parent class(es) to override in
   current class.
-- [ ] `:Ancestors` that lists the parent classes of the current class, even
+- [X] `:Ancestors` that lists the parent classes of the current class, even
   from anywhere within a class definition
 - [ ] `:Constructor` that defines new constructors or assignment operator based
   on parents and on fields.
@@ -67,7 +67,7 @@ May be there is a way to request references to client code (with COC...), and
 inspect the translation units it belongs to... This needs investigation.
 
 ### libclang limitations
-Libclang is quite limited. It only provide information that its maintainer have
+Libclang has limitations. It only provides information that its maintainer have
 needed elsewhere. That why there are projects like
 [cppast](https://github.com/foonathan/cppast), or other tools based on
 libtooling.
@@ -84,7 +84,6 @@ Along the information I've found missing, I've identified so far:
   used in between, information I'd need in `:GOTOIMPL`. (may be if we analyse
   tokens...?)
 - It doesn't report `explicit` constructors (tokens?)
-- It doesn't report `final` member functions (tokens?)
 
 Installation Requirements:
 -------------------------
