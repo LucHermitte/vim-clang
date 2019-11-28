@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  27th Nov 2019
+" Last Update:  28th Nov 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -59,7 +59,10 @@ endfunction
 " # Debug   {{{2
 let s:verbose = get(s:, 'verbose', 0)
 function! clang#verbose(...)
-  if a:0 > 0 | let s:verbose = a:1 | endif
+  if a:0 > 0
+    let s:verbose = a:1
+    pyx debug = vim.eval('s:verbose')
+  endif
   return s:verbose
 endfunction
 
@@ -311,8 +314,8 @@ let &cpo=s:cpo_save
 " ## Test functions to move elsewhere eventually {{{1
 " Function: clang#parents() {{{2
 function! clang#parents() abort
-  let parents = pyxeval('getParents(findClass())')
-  return parents
+  let [parents, crt] = pyxeval('getParents(findClass(), True)')
+  return [parents, crt]
 endfunction
 
 " Function: clang#functions() {{{3

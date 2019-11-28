@@ -27,8 +27,8 @@ import threading
 import linecache
 from clang.cindex import *
 # import clang.cindex
-
 # }}}1
+debug = eval(vim.eval('clang#verbose()'))
 #======================================================================
 ## Add missing functions to clang.cindex {{{1
 
@@ -417,12 +417,13 @@ def decodeBaseClass(cursor):                                # {{{2
 
 def decodeExtent(sourceLocation):                           # {{{2
   res = {
+      'file'  : sourceLocation.start.file,
       'start' : {
-        'line': sourceLocation.start.line,
+        'lnum': sourceLocation.start.line,
         'col': sourceLocation.start.column
         },
       'end' : {
-        'line': sourceLocation.end.line,
+        'lnum': sourceLocation.end.line,
         'col': sourceLocation.end.column
         }
       }
@@ -463,20 +464,36 @@ def getCurrentSymbol(what = None):                          # {{{2
 #======================================================================
 # }}}1
 ## High level functions                  {{{1
-def getParents(cursor):                                     # {{{2
+def getParents(cursor, return_location_current = False):    # {{{2
   parents = []
   for node in cursor.get_children():
     if node.kind == CursorKind.CXX_BASE_SPECIFIER:
+      ref = node.referenced
       info = {
-          'name'     : node.referenced.spelling,
+          'name'     : ref.spelling,
           'spelling' : node.spelling,
-          'access'   : decodeAccessSpecifier(node.access_specifier)
+          'access'   : decodeAccessSpecifier(node.access_specifier),
+          'location' : {
+            'filename' : ref.extent.start.file.name,
+            'lnum'     : ref.extent.start.line,
+            'col'      : ref.extent.start.column
+            }
           }
-      l2_parents = getParents(node.referenced)
+      l2_parents = getParents(ref)
       if l2_parents:
         info.update({'parents': l2_parents})
       parents += [info]
-  return parents
+  if not return_location_current:
+    return parents
+  current = {
+      'name': cursor.spelling,
+      'location' : {
+        'filename' : cursor.extent.start.file.name,
+        'lnum'     : cursor.extent.start.line,
+        'col'      : cursor.extent.start.column
+        }
+      }
+  return parents, current
 
 def getFunctions(cursor, filter = None):                    # {{{2
   functions = []
