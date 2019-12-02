@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  28th Nov 2019
+" Last Update:  02nd Dec 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -325,10 +325,10 @@ function! clang#functions() abort
   return functions
 endfunction
 
-" Function: clang#non_overridden_function() {{{3
+" Function: clang#non_overridden_virtual_functions() {{{3
 " @return functions from parent class that haven't been overridden
-function! clang#non_overridden_function() abort
-  let functions = pyxeval('getNonOverriddenFunctions(findScope())')
+function! clang#non_overridden_virtual_functions() abort
+  let functions = pyxeval('getNonOverriddenVirtualFunctions(findClass())')
   return functions
 endfunction
 

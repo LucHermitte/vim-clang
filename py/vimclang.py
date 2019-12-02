@@ -507,34 +507,79 @@ def getFunctions(cursor, filter = None):                    # {{{2
         functions += [decodeCursor(node)]
   return functions
 
-def getNonOverriddenFunctions(cursor):                      # {{{2
-  # 1- fetch virtual functions from parents
-  parent_functions = []
+def areSameFunctions(func1, func2):                         # {{{2
+  return func1.spelling == func2.spelling and getattr(func1, 'signature', func1.type.spelling) == getattr(func2, 'signature', func2.type.spelling)
+
+def getVirtualNonFinalFunctions(cursor):                    # {{{2
+  # TODO: how should the merging from multiple inheritance work???
+  functions = []
+  base_functions = []
   children=cursor.get_children()
   for node in children:
-    if node.kind == CursorKind.CXX_METHOD and n2.is_virtual_method():
-      new_functions += [node]
     if node.kind == CursorKind.CXX_BASE_SPECIFIER:
       baseclass = node.referenced
-      classinfo = {
-          'name'     : baseclass.spelling,
-          'spelling' : node.spelling,
-          'access'   : decodeAccessSpecifier(node.access_specifier),
-          'location' : getLocation(baseclass.extent)
-          }
-      # HERE: get virtual & non final functions from all parents
-      for n2 in baseclass.get_children():
-        if n2.kind == CursorKind.CXX_METHOD and n2.is_virtual_method():
-          parent_functions += [n2]
-      l2_parents = getParents(baseclass)
-      if l2_parents:
-        info.update({'parents': l2_parents})
-      parents += [info]
+      base_functions += getVirtualNonFinalFunctions(baseclass)
+    elif node.kind == CursorKind.CXX_METHOD and node.is_virtual_method():
+      func_children_kinds = [child.kind for child in node.get_children()]
+      is_override = CursorKind.CXX_OVERRIDE_ATTR in func_children_kinds
+      is_final    = CursorKind.CXX_FINAL_ATTR    in func_children_kinds
+      if is_final:
+        # remove from base_functions
+        base_functions = [func for func in base_functions
+            if not areSameFunctions(func, node) ]
+      elif is_override:
+        # update in base_functions
+        funcs = [func for func in base_functions
+            if areSameFunctions(func, node) ]
+        assert(len(funcs) == 1)
+        funcs[0].defined_in += [cursor.spelling]
+        funcs[0].pure        = False
+      else:
+        # Actually, 'override' keyword may have been forgotten => still search
+        # in base classes in order to merge identical functions
+        funcs = [func for func in base_functions
+            if areSameFunctions(func, node) ]
+        if funcs:
+          assert(len(funcs) == 1)
+          funcs[0].defined_in += [cursor.spelling]
+          funcs[0].signature   = node.type.spelling
+          funcs[0].pure        = False
+        else:
+          node.defined_in = [cursor.spelling]
+          node.signature  = node.type.spelling
+          node.pure       = node.is_pure_virtual_method()
+          functions += [node]
+  functions += base_functions
+  return functions
 
-  # 2- remove functions already overridden
+def getNonOverriddenVirtualFunctions(cursor):               # {{{2
+  # TODO: how should the merging from multiple inheritance work???
+  # TODO: should we have an option to return the functions already overwritten?
+  functions = []
+  children=cursor.get_children()
+  for node in children:
+    if node.kind == CursorKind.CXX_BASE_SPECIFIER:
+      # 1- fetch virtual functions from parents
+      baseclass = node.referenced
+      functions += getVirtualNonFinalFunctions(baseclass)
+    elif node.kind == CursorKind.CXX_METHOD and node.is_virtual_method():
+      # 2- Remove indiscriminatelly overriden/final functions
+      functions = [func for func in functions
+          if not areSameFunctions(func, node) ]
 
   # 3- convert this function list into a vim compatible list
-  return possible_functions
+  res = []
+  for func in functions:
+    new_func = {}
+    new_func['name']       = func.spelling
+    new_func['signature']  = func.signature
+    new_func['defined_in'] = func.defined_in
+    new_func['pure']       = func.pure
+    # The access specifier will be the one from the oldest class in a hierarchy
+    new_func['access']     = decodeAccessSpecifier(func.access_specifier)
+    new_func['extent']     = decodeExtent(func.extent)
+    res += [new_func]
+  return res
 
 # }}}1
 #======================================================================
