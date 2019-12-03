@@ -38,7 +38,7 @@ features that'll be greatly improved by C++ code parsing done by libclang,
 instead of being done in pure vimscript:
 - [X] [`:DOX`](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Doxygen.md)
   that generates Doxygen comments
-- [ ] `:GOTOIMPL` that generates a function definition from its declaration
+- [.] `:GOTOIMPL` that generates a function definition from its declaration
 - [X] `:Override` that proposes functions from parent class(es) to override in
   current class.
 - [X] `:Ancestors` that lists the parent classes of the current class, even

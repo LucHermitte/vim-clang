@@ -350,17 +350,18 @@ def decodeFunction(cursor):                                 # {{{2
   # libclang doesn't permit to know
   # - whether it's constexpr
   # - whether it's volatile
-  # - whether it has been =deleted
   res = {}
   assert(cursor.kind in k_function_kinds)
   true_kind = cursor.kind
-  res['is_definition']     = cursor.is_definition()
-  res['const']             = cursor.is_const_method()
-  res['is_default_method'] = cursor.is_default_method()
-  res['access_specifier']  = decodeAccessSpecifier(cursor.access_specifier)
+  res['is_definition']       = cursor.is_definition()
+  res['const']               = cursor.is_const_method()
+  res['is_defaulted_method'] = cursor.is_default_method()
+  res['access_specifier']    = decodeAccessSpecifier(cursor.access_specifier)
+  # res['availability']        = str(cursor.availability)
+  res['is_deleted_method']   = cursor.availability == AvailabilityKind.NOT_AVAILABLE
   # parameters?
-  # res["get_arguments"]     = [decodeArgument(arg) for arg in cursor.get_arguments()]
-  res['children']          = decodeChildren(cursor)
+  # res["get_arguments"]       = [decodeArgument(arg) for arg in cursor.get_arguments()]
+  res['children']            = decodeChildren(cursor)
   # NB: when there are errors (e.g. unknown parameter types), children are not
   # reported...
   # template?
