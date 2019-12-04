@@ -88,7 +88,7 @@ Along the information I've found missing, I've identified so far:
 Installation Requirements:
 -------------------------
 * [Vim 8.0+](http://www.vim.org), compiled with python support,
-* Python 3.x,
+* Python 3.x (actually, I'll try to support Python 2.7.x, but with no guaranties)
 * [lh-vim-lib](http://github.com/LucHermitte/lh-vim), v4.7.1+
 * libclang,
 * libclang Python bindings,

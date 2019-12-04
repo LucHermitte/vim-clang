@@ -85,15 +85,25 @@ def verbose(message):                                       # {{{2
   if debug:
     print(message)
 
+def runCommandWithoutStdin(command):
+  import sys, subprocess
+  if sys.version_info[0] == 2:
+    import os
+    with open(os.devnull, 'r')  as FNULL:
+      return subprocess.check_output(command,
+          stderr=subprocess.STDOUT, stdin=FNULL,
+          shell=True).decode().splitlines()
+  else:
+    return subprocess.check_output(command,
+        stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+        shell=True).decode().splitlines()
+
 def getSystemCompilationOptions(compiler = None):           # {{{2
   compiler = compiler or k_compilers[getCurrentFileType()]
   res = g_system_compilation_flags.get(compiler, [])
   if res:
     return res
-  import subprocess
-  result = subprocess.check_output(compiler + ' -E -xc++ - -Wp,-v',
-      stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-      shell=True).decode().splitlines()
+  result = runCommandWithoutStdin(compiler + ' -E -xc++ - -Wp,-v')
   flags = ['-isystem'+path[1:] for path in result if path and path[0] == ' ']
   verbose("System flags for %s : %s" % (compiler, flags))
   g_system_compilation_flags[compiler] = flags
