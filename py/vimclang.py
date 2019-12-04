@@ -388,9 +388,13 @@ def decodeFunction(cursor):                                 # {{{2
     if   family == CursorKind.PARM_DECL:
       parameters += [decodeCursor(child)]
     elif family == CursorKind.TEMPLATE_TYPE_PARAMETER:
-      template_parameters += [decodeCursor(child)]
+      decoded_child = decodeCursor(child)
+      decoded_child['what'] = 'typename'
+      template_parameters += [decoded_child]
     elif family == CursorKind.TEMPLATE_NON_TYPE_PARAMETER:
-      template_parameters += [decodeCursor(child)]
+      decoded_child = decodeCursor(child)
+      decoded_child['what'] = child.type.spelling
+      template_parameters += [decoded_child]
     elif family == CursorKind.COMPOUND_STMT: # has a definition
       pass
   res['parameters']          = parameters

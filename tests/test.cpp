@@ -10,13 +10,18 @@ struct S {
     virtual int pure() = 0;
     virtual int v();
 
-    template <typename T, std::size_t N> void t(T element, unsigned u, double const& d);
+    template <typename T, std::size_t N> void t(T element, unsigned u, double const& d, int & i);
 
     S() noexcept = default;
     void wi() noexcept(true);
     void wi2() noexcept(false);
+    void wi3() noexcept;
+
+    void f(int) = delete;
 
     explicit S(double);
+    S(int);
+    ~S();
 };
 
 constexpr bool Toto = false;
@@ -26,11 +31,14 @@ struct S0 {
     virtual int v_pub_pri();
     virtual int pure() = 0;
 private:
-    virtual int constone(S const& s) const noexcept(Toto) = 0;
+    virtual int constone(S const& s) const noexcept(Toto);
+    virtual int constone2(S const& s) const noexcept(Toto) = 0;
 };
 
 struct S2 : S0 {
-    int v(double d) override;
+    int v(double d) override {
+        return 42;
+    }
 private:
     int v_pub_pri() override;
     int pure() final;
@@ -38,6 +46,8 @@ public:
     class C {
         C() = default;
         static void f();
+
+        bool doWeCanAnInfiniteLoop(C const& brother);
     };
 };
 
@@ -51,5 +61,6 @@ template <typename T, int N> struct array {
     }
     T tab[N];
 };
-}
+} // namespace NS1
 
+void g(double d);
