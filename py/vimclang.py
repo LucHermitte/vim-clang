@@ -195,6 +195,13 @@ k_function_kinds = [
     CursorKind.FUNCTION_TEMPLATE,
     ]
 
+k_member_function_kinds = [
+    CursorKind.CONSTRUCTOR,
+    CursorKind.CONVERSION_FUNCTION,
+    CursorKind.CXX_METHOD,
+    CursorKind.DESTRUCTOR,
+    ]
+
 k_pointer_types = [
     TypeKind.MEMBERPOINTER,
     TypeKind.POINTER,
@@ -271,21 +278,21 @@ def decodeRefQualifier(kind):                               # {{{2
 
 def decodeType(type):                                       # {{{2
   res = {
-      'spelling': type.spelling,
-      'kind': typeKinds.get(type.kind, type.kind.name),
+      'spelling'              : type.spelling,
+      'kind'                  : typeKinds.get(type.kind, type.kind.name),
       'num_template_arguments': type.get_num_template_arguments(),
-      # 'canonical': type.get_canonical(),
-      'const': type.is_const_qualified(),
-      'volatile': type.is_volatile_qualified(),
-      'restrict': type.is_restrict_qualified(),
-      'adress_space': type.get_address_space(),
-      'typedef_name': type.get_typedef_name(),
-      # 'class_type': type.get_class_type(),
-      # 'named_type': type.get_named_type(),
-      'pod': type.is_pod(),
-      'align': type.get_align(),
-      'size': type.get_size(),
-      'ref_qualifier': decodeRefQualifier(type.get_ref_qualifier())
+      # 'canonical'           : type.get_canonical(),
+      'const'                 : type.is_const_qualified(),
+      'volatile'              : type.is_volatile_qualified(),
+      'restrict'              : type.is_restrict_qualified(),
+      'adress_space'          : type.get_address_space(),
+      'typedef_name'          : type.get_typedef_name(),
+      # 'class_type'          : type.get_class_type(),
+      # 'named_type'          : type.get_named_type(),
+      'pod'                   : type.is_pod(),
+      'align'                 : type.get_align(),
+      'size'                  : type.get_size(),
+      'ref_qualifier'         : decodeRefQualifier(type.get_ref_qualifier())
       }
   if type.kind in k_function_types:
     res['result']        = decodeType(type.get_result())
@@ -359,19 +366,35 @@ def decodeChildren(cursor):                                 # {{{2
 def decodeFunction(cursor):                                 # {{{2
   # libclang doesn't permit to know
   # - whether it's constexpr
-  # - whether it's volatile
+  volatile_matcher = re.compile(r'.*\) .*\bvolatile\b')
   res = {}
   assert(cursor.kind in k_function_kinds)
   true_kind = cursor.kind
-  res['is_definition']       = cursor.is_definition()
-  res['const']               = cursor.is_const_method()
-  res['is_defaulted_method'] = cursor.is_default_method()
-  res['access_specifier']    = decodeAccessSpecifier(cursor.access_specifier)
-  # res['availability']        = str(cursor.availability)
-  res['is_deleted_method']   = cursor.availability == AvailabilityKind.NOT_AVAILABLE
+  res['is_definition']    = cursor.is_definition()
+  res['const']            = cursor.is_const_method()
+  # Volatile is detected by analysing type spelling
+  res['volatile']         = volatile_matcher.match(cursor.type.spelling) and True or False
+  res['is_defaulted']     = cursor.is_default_method()
+  res['access_specifier'] = decodeAccessSpecifier(cursor.access_specifier)
+  # res['availability']   = str(cursor.availability)
+  res['is_deleted']       = cursor.availability == AvailabilityKind.NOT_AVAILABLE
   # parameters?
-  # res["get_arguments"]       = [decodeArgument(arg) for arg in cursor.get_arguments()]
-  res['children']            = decodeChildren(cursor)
+  # res["get_arguments"]  = [decodeArgument(arg) for arg in cursor.get_arguments()]
+  res['children']         = decodeChildren(cursor)
+  parameters          = []
+  template_parameters = []
+  for child in cursor.get_children():
+    family = child.kind
+    if   family == CursorKind.PARM_DECL:
+      parameters += [decodeCursor(child)]
+    elif family == CursorKind.TEMPLATE_TYPE_PARAMETER:
+      template_parameters += [decodeCursor(child)]
+    elif family == CursorKind.TEMPLATE_NON_TYPE_PARAMETER:
+      template_parameters += [decodeCursor(child)]
+    elif family == CursorKind.COMPOUND_STMT: # has a definition
+      pass
+  res['parameters']          = parameters
+  res['template_parameters'] = template_parameters
   # NB: when there are errors (e.g. unknown parameter types), children are not
   # reported...
   # template?
@@ -382,16 +405,17 @@ def decodeFunction(cursor):                                 # {{{2
     # CONSTRUCTOR...), get_arguments() is empty, and yet
     # get_num_template_arguments() is -1
 
-  res['true_kind']         = str(true_kind)
+  res['true_kind']        = str(true_kind)
+  res['is_member']        = true_kind in k_member_function_kinds
 
   # Constructor kinds
   if true_kind == CursorKind.CONSTRUCTOR:
     res['constructor_kind'] = decodeConstructorKind(cursor)
 
   # The function type, i.e. its signature somehow
-  res['type']               = decodeType(cursor.type)
+  res['type']             = decodeType(cursor.type)
   # return ?
-  res['result_type']        = decodeType(cursor.result_type)
+  res['result_type']      = decodeType(cursor.result_type)
   # exception ?
   res['exception_specification_kind'] = decodeExceptionSpecificationKind(cursor.exception_specification_kind)
   # static/override/final/virtual?
@@ -401,9 +425,8 @@ def decodeFunction(cursor):                                 # {{{2
   children_kinds  = [child.kind for child in cursor.get_children()]
   res['override'] = CursorKind.CXX_OVERRIDE_ATTR in children_kinds
   res['final']    = CursorKind.CXX_FINAL_ATTR in children_kinds
+  res['scope']    = getScope(cursor)
   # align?
-  # scope
-  res['scope'] = getScope(cursor)
   return res
 
 def decodeClass(cursor):                                    # {{{2

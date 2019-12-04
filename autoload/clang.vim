@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  02nd Dec 2019
+" Last Update:  04th Dec 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -118,7 +118,7 @@ endfunction
 function! clang#compilation_database() abort
   let filename = lh#option#get('BTW.compilation_dir')
   if lh#option#is_set(filename)
-    let filename .= .'/compile_commands.json'
+    let filename .= '/compile_commands.json'
     let found = filereadable(filename)
     call s:Verbose("Compilation database ".(found ? "found: '%1'" : "not found"), filename)
     return filename
