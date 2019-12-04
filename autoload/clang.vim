@@ -325,7 +325,7 @@ function! clang#functions() abort
   return functions
 endfunction
 
-" Function: clang#non_overridden_virtual_functions() {{{3
+" Function: clang#non_overridden_virtual_functions() {{{2
 " @return functions from parent class that haven't been overridden
 function! clang#non_overridden_virtual_functions() abort
   let functions = pyxeval('getNonOverriddenVirtualFunctions(findClass())')

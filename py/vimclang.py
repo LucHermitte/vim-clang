@@ -407,6 +407,7 @@ def decodeFunction(cursor):                                 # {{{2
 
   res['true_kind']        = str(true_kind)
   res['is_member']        = true_kind in k_member_function_kinds
+  # +-> This implies the first scope is the class it belongs to
 
   # Constructor kinds
   res['explicit']         = False
