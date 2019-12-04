@@ -79,13 +79,20 @@ Along the information I've found missing, I've identified so far:
   that depends on that type. This means:
     - it cannot be used to auto-import missing includes
     - it won't return parameters of unknown types
-- `get_arguments()` doesn't work on template functions. Hopefully there is a
-  workaround: we can analyse _childrens_.
 - It doesn't report how parameters are formatted, and thus whether newlines are
   used in between, information I'd need in `:GOTOIMPL`. (may be if we analyse
   tokens...?)
-- It doesn't report `explicit` constructors (it can be deduced though: they are
-  mono parameters constructors without the 'converting' flag)
+
+Workarounds:
+- `get_arguments()` doesn't work on template functions. Hopefully there is a
+  workaround: we can analyse _children_.
+- The presence of `final` and `override` keywords can be found in the
+  _children_.
+- `explicit` constructors can be deduced: they are mono parameters constructors
+  without the 'converting' flag.
+- The true kind of a template function can be obtained with the
+  `clang_getTemplateCursorKind` C function that has no binding in
+  `clang.cindex`.
 
 Installation Requirements:
 -------------------------
@@ -131,7 +138,6 @@ To do list:
 * Add unit tests
 * Use `$CFLAGS` and `$CXXFLAGS` when there is no compilation database
 * Have the system includes be compatible with the `-stdlib` specified, if any
-
 
 Alternative Solutions:
 ----------------------

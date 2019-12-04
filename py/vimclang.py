@@ -409,8 +409,11 @@ def decodeFunction(cursor):                                 # {{{2
   res['is_member']        = true_kind in k_member_function_kinds
 
   # Constructor kinds
+  res['explicit']         = False
   if true_kind == CursorKind.CONSTRUCTOR:
     res['constructor_kind'] = decodeConstructorKind(cursor)
+    if len(parameters) == 1 and not cursor.is_converting_constructor():
+      res['explicit']         = True
 
   # The function type, i.e. its signature somehow
   res['type']             = decodeType(cursor.type)
