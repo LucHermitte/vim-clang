@@ -4,7 +4,8 @@ Module to interact with libclang (and clang\_indexer DB) from Vim.
 
 Features:
 ---------
-* Provides an API to request information about the symbol under the cursor for Vim.
+* Provides an [API](doc/API.md) to request information about the symbol under
+  the cursor for Vim.
 * Inter-operates with clang\_indexer DB
     * Displays the references of the C++ symbol under the cursor with `<leader>r`
     * Displays the declaration(s) of the C++ symbol under the cursor with `<leader>d`
@@ -49,15 +50,16 @@ instead of being done in pure vimscript:
 - [ ] [_switch-enum_](https://github.com/LucHermitte/lh-cpp/blob/master/doc/Enums.md)
   that expands a `switch`-snippet with all the values from an enumeration
 
+
 Limitations:
 ------------
 
 ### Translation Units
-The inspection API provided from V2 can only analyse the current translation
-unit. It has no way (1) to know about declarations made in other translation
-units. While it should not pose any issues regarding base classes, fields,
-functions..., it will not permit to know about other parts of code that makes
-use of/references the symbol inspected.
+The [inspection API](doc/API.md) provided from V2 can only analyse the current
+translation unit. It has no way (1) to know about declarations made in other
+translation units. While it should not pose any issues regarding base classes,
+fields, functions..., it will not permit to know about other parts of code that
+makes use of/references the symbol inspected.
 
 (1) As of now, I won't plan to actively maintain clang-indexer anymore. Other
 tools like COC+ccls/clangd/... already provide indexing. It's just that we may
@@ -77,13 +79,13 @@ Along the information I've found missing, I've identified so far:
   that depends on that type. This means:
     - it cannot be used to auto-import missing includes
     - it won't return parameters of unknown types
-- Deleted functions aren't reported (may be if we analyse tokens...?)
 - `get_arguments()` doesn't work on template functions. Hopefully there is a
   workaround: we can analyse _childrens_.
 - It doesn't report how parameters are formatted, and thus whether newlines are
   used in between, information I'd need in `:GOTOIMPL`. (may be if we analyse
   tokens...?)
-- It doesn't report `explicit` constructors (tokens?)
+- It doesn't report `explicit` constructors (it can be deduced though: they are
+  mono parameters constructors without the 'converting' flag)
 
 Installation Requirements:
 -------------------------
@@ -126,6 +128,9 @@ To do list:
 -----------
 * Interface _à la_ `taglist()`
 * Reimplements features from lh-dev and `lh-cpp#analysisLib*`.
+* Add unit tests
+* Use `$CFLAGS` and `$CXXFLAGS` when there is no compilation database
+* Have the system includes be compatible with the `-stdlib` specified, if any
 
 
 Alternative Solutions:
