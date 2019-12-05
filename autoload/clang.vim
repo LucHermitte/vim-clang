@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  04th Dec 2019
+" Last Update:  05th Dec 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -312,6 +312,28 @@ endfunction
 let &cpo=s:cpo_save
 "------------------------------------------------------------------------
 " ## Test functions to move elsewhere eventually {{{1
+" Function: clang#extract_from_extent(extent) {{{2
+" Extents seems to be specified as [start, end)
+function! clang#extract_from_extent(extent, what) abort
+  if resolve(fnamemodify(a:extent.filename, ':p')) == resolve(expand('%:p'))
+    " Current buffer may have been changed since last save
+    " => need to use its current state
+    let lines = getline(1, '$')
+  else
+    " libclang has certainly parsed a saved file => use readfile
+    let lines = readfile(a:extent.filename)
+  endif
+  call s:Verbose("Extract %1 from %2: l:%3, c:%4 ... l:%5, c:%6",
+        \ a:what, a:extent.filename,
+        \ a:extent.start.lnum, a:extent.start.col,
+        \ a:extent.end.lnum, a:extent.end.col)
+  let lines = lines[(a:extent.start.lnum-1) : (a:extent.end.lnum-1)]
+  " First, trim the end, in case there is only one line
+  let lines[-1] = lines[0][: a:extent.end.col-2]
+  let lines[0]  = lines[0][a:extent.start.col-1 :]
+  return lines
+endfunction
+
 " Function: clang#parents() {{{2
 function! clang#parents() abort
   let [parents, crt] = pyxeval('getParents(findClass(), True)')

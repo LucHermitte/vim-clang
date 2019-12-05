@@ -84,6 +84,9 @@ Possible values for symbol kind are:
 
 This function wraps python `getCurrentSymbol()` function.
 
+#### `clang#extract_from_extent(extent)`
+Extracts the lines specified by the extent.
+
 #### `clang#parents()`
 Returns the parents of the current class.
 
