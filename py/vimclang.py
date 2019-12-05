@@ -324,14 +324,14 @@ def decodeAccessSpecifier(access_specifier):                # {{{2
     return '???'
 
 def decodeConstructorKind(cursor):                          # {{{2
-  if cursor.is_converting_constructor():
-    return 'converting'
-  elif cursor.is_copy_constructor():
+  if cursor.is_copy_constructor():
     return 'copy'
   elif cursor.is_move_constructor():
     return 'move'
   elif cursor.is_default_constructor():
     return 'default'
+  elif cursor.is_converting_constructor():
+    return 'converting'
   else:
     return ''
 

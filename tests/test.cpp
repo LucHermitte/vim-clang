@@ -22,6 +22,9 @@ struct S {
     explicit S(double);
     S(int);
     ~S();
+    S(S const&);
+    S& operator=(S const&);
+    S& operator=(S &&) = delete;
 };
 
 constexpr bool Toto = false;
