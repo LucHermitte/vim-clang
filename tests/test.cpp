@@ -10,7 +10,12 @@ struct S {
     virtual int pure() = 0;
     virtual int v();
 
-    template <typename T, std::size_t N> void t(T element, unsigned u, double const& d, int & i);
+    template <typename T, std::size_t N = 50>
+    void t(
+            T element,
+            unsigned u,
+            double const& d,
+            int & i);
 
     S() noexcept = default;
     void wi() noexcept(true);
@@ -54,11 +59,14 @@ public:
     };
 };
 
+template <typename T, std::size_t N = 50>
 struct S3 : S2, private S2::C
 {
+    void reset() ;
+    T array[N] = {};
 };
 
-template <typename T, int N> struct array {
+template <typename T, int N = 50> struct array {
     void f() {
         int i;
     }

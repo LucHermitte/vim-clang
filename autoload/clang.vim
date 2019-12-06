@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  05th Dec 2019
+" Last Update:  06th Dec 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -312,7 +312,7 @@ endfunction
 let &cpo=s:cpo_save
 "------------------------------------------------------------------------
 " ## Test functions to move elsewhere eventually {{{1
-" Function: clang#extract_from_extent(extent) {{{2
+" Function: clang#extract_from_extent(extent, what) {{{2
 " Extents seems to be specified as [start, end)
 function! clang#extract_from_extent(extent, what) abort
   if resolve(fnamemodify(a:extent.filename, ':p')) == resolve(expand('%:p'))

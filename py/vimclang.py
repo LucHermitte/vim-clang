@@ -234,7 +234,21 @@ def getScope(cursor = None):                                # {{{2
   parent = cursor.semantic_parent
   # Ignore translation units
   if parent and parent.kind in [CursorKind.NAMESPACE] + k_class_kinds:
-    return [parent.spelling] + getScope(parent)
+    crt_scope = {'name': parent.spelling, 'kind': str(parent.kind)}
+    if parent.kind == CursorKind.CLASS_TEMPLATE:
+      template_parameters = []
+      for child in parent.get_children():
+        family = child.kind
+        if family == CursorKind.TEMPLATE_TYPE_PARAMETER:
+          decoded_child = decodeCursor(child)
+          decoded_child['what'] = 'typename'
+          template_parameters += [decoded_child]
+        elif family == CursorKind.TEMPLATE_NON_TYPE_PARAMETER:
+          decoded_child = decodeCursor(child)
+          decoded_child['what'] = child.type.spelling
+          template_parameters += [decoded_child]
+      crt_scope['tparams'] = template_parameters
+    return [crt_scope] + getScope(parent)
   return []
 
 def findFunction(cursor = None):                            # {{{2
@@ -434,6 +448,8 @@ def decodeFunction(cursor):                                 # {{{2
   res['override'] = CursorKind.CXX_OVERRIDE_ATTR in children_kinds
   res['final']    = CursorKind.CXX_FINAL_ATTR in children_kinds
   res['scope']    = getScope(cursor)
+
+  # print('tokens: %s' % [[t.spelling, t.kind, decodeExtent(t.extent)] for t in cursor.get_tokens()])
   # align?
   return res
 
@@ -451,7 +467,6 @@ def decodeNamespace(cursor):                                # {{{2
   res = {}
   res['scope']    = getScope(cursor)
   res['children'] = decodeChildren(cursor)
-  res['scope']    = getScope(cursor)
   return res
 
 def decodeBaseClass(cursor):                                # {{{2
