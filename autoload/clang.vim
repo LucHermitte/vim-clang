@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  06th Dec 2019
+" Last Update:  09th Dec 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -88,13 +88,27 @@ function! clang#can_plugin_be_used() abort
 endfunction
 
 " # options {{{2
+let s:k_on_windows = lh#os#OnDOSWindows()
+let s:k_split_paths      = s:k_on_windows ? '[;,]' : ':'
+let s:k_dynlib_ext = s:k_on_windows ? 'dll*' : 'so*'
+let s:k_libclang   = 'libclang.' . s:k_dynlib_ext
+
 " Function: clang#libpath() {{{3
+" TODO: This function will need some work in order to:
+" - ease the detection of whether libclang and clang.cindex are
+"   installed or not
+" - avoid noisy messages
+" - permit to end-euser to inject the path to libclang.so
+"
+" BTW, since python 3.6, it seems that ctype (used by clang.cindex) is
+" able to analyse $LD_LIBRARY_PATH by itself
+" See https://docs.python.org/3/library/ctypes.html#finding-shared-libraries
 function! clang#libpath() abort
   if !exists('g:clang_library_path')
     " 1- check $LD_LIBRARY_PATH
     if has('unix')
-      let libpaths = split($LD_LIBRARY_PATH, has('unix') ? ':' : ',')
-      call filter(libpaths, '!empty(glob(v:val."/libclang.so*", 1))')
+      let libpaths = split($LD_LIBRARY_PATH, s:k_split_paths)
+      call filter(libpaths, '!empty(glob(v:val."/".s:k_libclang, 1))')
       if !empty(libpaths)
         let g:clang_library_path = libpaths[0]
       endif
@@ -103,10 +117,10 @@ function! clang#libpath() abort
   " 2- check $PATH if nothing was found yet
   if !exists('g:clang_library_path')
     " Keeps paths ending in 'bin$'
-    let binpaths = filter(split($PATH, has('unix') ? ':' : ','), 'v:val =~ "bin[/\\\\]\\=$"')
-    call filter(binpaths, '!empty(glob(v:val[:-4]."lib/libclang.so*", 1))')
+    let binpaths = filter(split($PATH, s:k_split_paths), 'v:val =~ "bin[/\\\\]\\=$"')
+    call filter(binpaths, '!empty(glob(v:val[:-4]."lib/".s:k_libclang, 1))')
     if !empty(binpaths)
-      let g:clang_library_path = binpaths[0]
+      let g:clang_library_path = resolve(binpaths[0].'/../lib')
     else
       let g:clang_library_path = ''
     endif
@@ -210,11 +224,26 @@ let s:clangpy_script      = s:plugin_root_path . '/py/vimclang.py'
 
 function! clang#_init_python() abort
   if !filereadable(s:clangpy_script)
+    " This should not happen!
     throw "Cannot find vim-clang python script: ".s:clangpy_script
   endif
+  pyx <<EOF
+try:
+  import vim
+  from clang.cindex import *
+except Exception as e:
+  vim.command('let l:error = "%s"' %(e,))
+EOF
+if exists('l:error')
+  call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error.".\nPlease install clang Python bindings.")
+  " Reset the g:clang_library_path variable that tells whether the
+  " plugin can be used
+  let g:clang_library_path = ""
+  return 0
+endif
   let ts = getftime(s:clangpy_script)
   if s:py_script_timestamp >= ts
-    return
+    return 2
   endif
   " clang_complete python part is expected to be already initialized
   call s:Verbose("Importing ".s:clangpy_script)
@@ -227,8 +256,23 @@ elif int(vim.eval('clang#verbose()')):
   print("sys.path already contains %s" % (plugin_root_path))
 EOF
   exe 'pyxfile ' . s:clangpy_script
-  pyx initVimClang()
+  pyx << EOF
+libclangpath = vim.eval('clang#libpath()')
+verbose('libclangpath = %s'%(libclangpath,))
+try:
+  initVimClang(libclangpath)
+except Exception as e:
+  vim.command('let l:error = "%s"' %(e,))
+EOF
+if exists('l:error')
+  " Reset the g:clang_library_path variable that tells whether the
+  " plugin can be used
+  let g:clang_library_path = ""
+  call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error)
+  return 0
+endif
   let s:py_script_timestamp = ts
+  return 1
 endfunction
 
 " # python callbacks {{{2

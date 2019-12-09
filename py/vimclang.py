@@ -993,8 +993,8 @@ typeKinds = dict({
 ## Plugin initialisation                 {{{1
 def initVimClang(library_path = None):
   global index
-  #if library_path:
-  #  Config.set_library_path(library_path)
+  if library_path:
+    Config.set_library_path(library_path)
 
   #Config.set_compatibility_check(False)
   index = Index.create()

@@ -1,12 +1,15 @@
 # vim-clang [![Last release](https://img.shields.io/github/tag/LucHermitte/vim-clang.svg)](https://github.com/LucHermitte/vim-clang/releases) [![Project Stats](https://www.openhub.net/p/21020/widgets/project_thin_badge.gif)](https://www.openhub.net/p/21020)
 
-Module to interact with libclang (and clang\_indexer DB) from Vim.
+Module to interact with libclang (and
+[clang\_indexer](https://github.com/LucHermitte/clang_indexer) DB) from Vim.
 
 Features:
 ---------
 * Provides an [API](doc/API.md) to request information about the symbol under
   the cursor for Vim.
-* Inter-operates with clang\_indexer DB
+* Inter-operates with
+  [clang\_indexer](https://github.com/LucHermitte/clang_indexer) DB (no longer
+  activelly maintained)
     * Displays the references of the C++ symbol under the cursor with `<leader>r`
     * Displays the declaration(s) of the C++ symbol under the cursor with `<leader>d`
     * Displays the Subclasses of the C++ symbol under the cursor with `<leader>s`
@@ -69,7 +72,7 @@ May be there is a way to request references to client code (with COC...), and
 inspect the translation units it belongs to... This needs investigation.
 
 ### libclang limitations
-Libclang has limitations. It only provides information that its maintainer have
+Libclang has limitations. It only provides information that its maintainers have
 needed elsewhere. That why there are projects like
 [cppast](https://github.com/foonathan/cppast), or other tools based on
 libtooling.
