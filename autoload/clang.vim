@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  09th Dec 2019
+" Last Update:  17th Dec 2019
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -157,8 +157,12 @@ endfunction
 function! clang#get_symbol(...) abort
   " pyx print(getCurrentSymbol())
   let what = get(a:, 1, '')
-  let res = pyxeval('getCurrentSymbol(vim.eval("what"))')
-  return res
+  try
+    let res = pyxeval('getCurrentSymbol(vim.eval("what"))')
+    return res
+  catch /clang.cindex.TranslationUnitLoadError/
+    return lh#option#unset("Sorry, libclang cannot parse the current file, and there is no way to know why: ".v:exception)
+  endtry
 endfunction
 
 " # misc {{{2
@@ -380,22 +384,34 @@ endfunction
 
 " Function: clang#parents() {{{2
 function! clang#parents() abort
-  let [parents, crt] = pyxeval('getParents(findClass(), True)')
-  return [parents, crt]
+  try
+    let [parents, crt] = pyxeval('getParents(findClass(), True)')
+    return [parents, crt]
+  catch /clang.cindex.TranslationUnitLoadError/
+    return lh#option#unset("Sorry, libclang cannot parse the current file, and there is no way to know why: ".v:exception)
+  endtry
 endfunction
 
 " Function: clang#functions() {{{2
 " ex: :echo  lh#dict#print_as_tree(pyxeval('getFunctions(findClass(), lambda n: n.is_virtual_method())'))
 function! clang#functions() abort
-  let functions = pyxeval('getFunctions(findScope())')
-  return functions
+  try
+    let functions = pyxeval('getFunctions(findScope())')
+    return functions
+  catch /clang.cindex.TranslationUnitLoadError/
+    return lh#option#unset("Sorry, libclang cannot parse the current file, and there is no way to know why: ".v:exception)
+  endtry
 endfunction
 
 " Function: clang#non_overridden_virtual_functions() {{{2
 " @return functions from parent class that haven't been overridden
 function! clang#non_overridden_virtual_functions() abort
-  let functions = pyxeval('getNonOverriddenVirtualFunctions(findClass())')
-  return functions
+  try
+    let functions = pyxeval('getNonOverriddenVirtualFunctions(findClass())')
+    return functions
+  catch /clang.cindex.TranslationUnitLoadError/
+    return lh#option#unset("Sorry, libclang cannot parse the current file, and there is no way to know why: ".v:exception)
+  endtry
 endfunction
 
 "------------------------------------------------------------------------

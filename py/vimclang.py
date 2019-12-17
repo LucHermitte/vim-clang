@@ -121,7 +121,7 @@ def getCompilationDatabase():
     return CompilationDatabase.fromDirectory(cdb_path)
 
 def getCompilationOptions(filename):                        # {{{2
-  options = getSystemCompilationOptions()
+  options = getSystemCompilationOptions()[:] # make sure to copy
   user_options = vim.eval("clang#user_options()")
   options += user_options
   verbose("system options: %s"%(options))
@@ -130,10 +130,12 @@ def getCompilationOptions(filename):                        # {{{2
   if cdb:
     cdbOptions = cdb.getCompileCommands(filename)
     if not cdbOptions:
+      verbose("File NOT in the compilation database")
       # TODO: In case this is a header file, need to find options elsewhere
-      # -> It seems header files are add into the compilation database
+      # -> It seems header files are added into the compilation database
       pass
     else:
+      verbose("File found in the compilation database")
       # keep only -i*, -I*, -std*, -D*, --driver
       matcher = re.compile('-[iIDsW]|--driver')
       for cmd in cdbOptions:
@@ -148,6 +150,8 @@ def getCompilationOptions(filename):                        # {{{2
 # Low level function {{{2
 def computeCurrentTranslationUnit(args, currentFile, fileName):
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
+  # flags += TranslationUnit.PARSE_INCOMPLETE
+  flags += 0x200 # Keep going
   tu = index.parse(fileName, args, [currentFile], flags)
   return tu
 
