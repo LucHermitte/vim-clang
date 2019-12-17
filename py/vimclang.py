@@ -294,19 +294,19 @@ def decodeRefQualifier(kind):                               # {{{2
   elif kind == RefQualifierKind.RVALUE:
     return 'rvalue'
 
-def decodeType(type):                                       # {{{2
+def decodeType(type, can_recurse = True):                   # {{{2
   res = {
       'spelling'              : type.spelling,
       'kind'                  : typeKinds.get(type.kind, type.kind.name),
       'num_template_arguments': type.get_num_template_arguments(),
-      # 'canonical'           : type.get_canonical(),
+      # 'canonical'           : str(type.get_canonical()),
       'const'                 : type.is_const_qualified(),
       'volatile'              : type.is_volatile_qualified(),
       'restrict'              : type.is_restrict_qualified(),
       'adress_space'          : type.get_address_space(),
       'typedef_name'          : type.get_typedef_name(),
-      # 'class_type'          : type.get_class_type(),
-      # 'named_type'          : type.get_named_type(),
+      # 'class_type'          : str(type.get_class_type()),
+      # 'named_type'          : str(type.get_named_type()),
       'pod'                   : type.is_pod(),
       'align'                 : type.get_align(),
       'size'                  : type.get_size(),
@@ -319,6 +319,8 @@ def decodeType(type):                                       # {{{2
     res['element_count'] = type.element_count()
   elif type.kind in k_pointer_types:
     res['pointee']       = decodeType(type.get_pointee())
+  elif type.kind == TypeKind.AUTO and can_recurse:
+    res['canonical'] = decodeType(type.get_canonical(), False)
   return res
 
 def decodeArgument(cursor):                                 # {{{2
@@ -479,6 +481,11 @@ def decodeBaseClass(cursor):                                # {{{2
   res['parent']            = decodeCursor(cursor.referenced)
   return res
 
+def decodeVariable(cursor):                                 # {{{2
+  res = {}
+  res['type'] = decodeType(cursor.type)
+  return res
+
 def decodeExtent(sourceLocation):                           # {{{2
   res = {
       'filename': sourceLocation.start.file.name,
@@ -519,6 +526,11 @@ def decodeCursor(cursor):                                   # {{{2
     res.update(decodeClass(cursor))
   elif cursor.kind == CursorKind.CXX_BASE_SPECIFIER:
     res.update(decodeBaseClass(cursor))
+  elif cursor.kind == CursorKind.VAR_DECL:
+    res.update(decodeVariable(cursor))
+  elif cursor.kind == CursorKind.TYPE_REF:
+    res['typeref'] = decodeType(cursor.type)
+    res['typeref']['canonical'] = decodeType(cursor.type.get_canonical())
   return res
 
 def getCurrentSymbol(what = None):                          # {{{2
