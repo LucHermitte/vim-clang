@@ -255,33 +255,29 @@ def getScope(cursor = None):                                # {{{2
     return [crt_scope] + getScope(parent)
   return []
 
-def findFunction(cursor = None):                            # {{{2
+def find(kinds, cursor = None):                             # {{{2
   cursor = cursor or getCurrentCursor()
-  while cursor and not cursor.kind in k_function_kinds:
+  while cursor and not cursor.kind in kinds:
     # print("-------", decodeCursor(cursor))
     cursor = cursor.semantic_parent
   return cursor
+
+def findFunction(cursor = None):                            # {{{2
+  return find(k_function_kinds, cursor)
 
 def findScope(cursor = None):                               # {{{2
-  cursor = cursor or getCurrentCursor()
-  while cursor and not cursor.kind in [CursorKind.NAMESPACE] + k_class_kinds:
-    # print("-------", decodeCursor(cursor))
-    cursor = cursor.semantic_parent
-  return cursor
+  return find([CursorKind.NAMESPACE] + k_class_kinds, cursor)
 
 def findClass(cursor = None):                               # {{{2
-  cursor = cursor or getCurrentCursor()
-  while cursor and not cursor.kind in k_class_kinds:
-    # print("-------", decodeCursor(cursor))
-    cursor = cursor.semantic_parent
-  return cursor
+  return find(k_class_kinds, cursor)
 
 def findNamespace(cursor = None):                           # {{{2
-  cursor = cursor or getCurrentCursor()
-  while cursor and not cursor.kind in [CursorKind.NAMESPACE]:
-    # print("-------", decodeCursor(cursor))
-    cursor = cursor.semantic_parent
-  return cursor
+  return find([CursorKind.NAMESPACE], cursor)
+
+def findDocumentable(cursor = None):
+  kinds = k_function_kinds + k_class_kinds + [CursorKind.NAMESPACE]
+  return find(kinds, cursor)
+
 # }}}2
 #======================================================================
 ## Decoding functions                    {{{1
@@ -543,6 +539,8 @@ def getCurrentSymbol(what = None):                          # {{{2
     cursor = findClass(cursor)
   elif what == 'namespace':
     cursor = findNamespace(cursor)
+  elif what == 'documentable':
+    cursor = findDocumentable(cursor)
   return cursor and decodeCursor(cursor)
   # print("mangled_name ", cursor.mangled_name)
 
