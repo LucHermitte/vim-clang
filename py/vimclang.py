@@ -372,14 +372,14 @@ def decodeExceptionSpecificationKind(kind):                 # {{{2
   elif kind == ExceptionSpecificationKind.UNPARSED:
     return 'unparsed'
 
-def decodeChildren(cursor):                                 # {{{2
+def decodeChildren(cursor, recurse_level):                  # {{{2
   res = {}
   for ch in cursor.get_children():
     s_kind = str(ch.kind)
-    res[s_kind] = res.get(s_kind, []) + [decodeCursor(ch)]
+    res[s_kind] = res.get(s_kind, []) + [decodeCursor(ch, recurse_level - 1)]
   return res
 
-def decodeFunction(cursor):                                 # {{{2
+def decodeFunction(cursor, recurse_level = 1):              # {{{2
   # libclang doesn't permit to know
   # - whether it's constexpr
   volatile_matcher = re.compile(r'.*\) .*\bvolatile\b')
@@ -396,7 +396,9 @@ def decodeFunction(cursor):                                 # {{{2
   res['is_deleted']       = cursor.availability == AvailabilityKind.NOT_AVAILABLE
   # parameters?
   # res["get_arguments"]  = [decodeArgument(arg) for arg in cursor.get_arguments()]
-  res['children']         = decodeChildren(cursor)
+  if recurse_level > 0:
+    res['children'] = decodeChildren(cursor, recurse_level)
+
   parameters          = []
   template_parameters = []
   for child in cursor.get_children():
@@ -455,26 +457,42 @@ def decodeFunction(cursor):                                 # {{{2
   # align?
   return res
 
-def decodeClass(cursor):                                    # {{{2
+def decodeClass(cursor, recurse_level = 1):                 # {{{2
   res = {}
   res['is_definition']          = cursor.is_definition()
   res['is_scoped_enum']         = cursor.is_scoped_enum()
   res['access_specifier']       = decodeAccessSpecifier(cursor.access_specifier)
-  res['children']               = decodeChildren(cursor)
   res['num_template_arguments'] = cursor.get_num_template_arguments()
   res['scope']                  = getScope(cursor)
+  if recurse_level > 0:
+    res['children']             = decodeChildren(cursor, recurse_level)
+  template_parameters = []
+  for child in cursor.get_children():
+    family = child.kind
+    if family == CursorKind.TEMPLATE_TYPE_PARAMETER:
+      decoded_child = decodeCursor(child)
+      decoded_child['what'] = 'typename'
+      template_parameters += [decoded_child]
+    elif family == CursorKind.TEMPLATE_NON_TYPE_PARAMETER:
+      decoded_child = decodeCursor(child)
+      decoded_child['what'] = child.type.spelling
+      template_parameters += [decoded_child]
+  res['template_parameters'] = template_parameters
   return res
 
-def decodeNamespace(cursor):                                # {{{2
+def decodeNamespace(cursor, recurse_level = 1):             # {{{2
   res = {}
   res['scope']    = getScope(cursor)
-  res['children'] = decodeChildren(cursor)
+  if recurse_level > 0:
+    res['children'] = decodeChildren(cursor, recurse_level)
   return res
 
-def decodeBaseClass(cursor):                                # {{{2
+def decodeBaseClass(cursor, recurse_level = 1):             # {{{2
   res = {}
   res['access_specifier']  = decodeAccessSpecifier(cursor.access_specifier)
-  res['parent']            = decodeCursor(cursor.referenced)
+
+  if recurse_level > 0:
+    res['parent'] = decodeCursor(cursor.referenced, recurse_level - 1)
   return res
 
 def decodeVariable(cursor):                                 # {{{2
@@ -505,7 +523,7 @@ def getLocation(sourceLocation):                            # {{{2
       }
   return res
 
-def decodeCursor(cursor):                                   # {{{2
+def decodeCursor(cursor, recurse_level = 1):                # {{{2
   # print(dir(cursor.kind))
   res = {
       "spelling" : cursor.spelling,
@@ -513,13 +531,13 @@ def decodeCursor(cursor):                                   # {{{2
       "extent"   : decodeExtent(cursor.extent)
       }
   if cursor.kind in k_function_kinds:
-    res.update(decodeFunction(cursor))
+    res.update(decodeFunction(cursor, recurse_level))
   elif cursor.kind in [CursorKind.PARM_DECL]:
     res.update(decodeArgument(cursor))
   elif cursor.kind == CursorKind.NAMESPACE:
-    res.update(decodeNamespace(cursor))
+    res.update(decodeNamespace(cursor, recurse_level))
   elif cursor.kind in k_class_kinds:
-    res.update(decodeClass(cursor))
+    res.update(decodeClass(cursor, recurse_level))
   elif cursor.kind == CursorKind.CXX_BASE_SPECIFIER:
     res.update(decodeBaseClass(cursor))
   elif cursor.kind == CursorKind.VAR_DECL:
@@ -533,6 +551,7 @@ def getCurrentSymbol(what = None):                          # {{{2
   global debug
   debug = int(vim.eval("clang#verbose()")) == 1
   cursor = getCurrentCursor()
+  recurse_level = 1
   if what == 'function':
     cursor = findFunction(cursor)
   elif what == 'class':
@@ -541,7 +560,8 @@ def getCurrentSymbol(what = None):                          # {{{2
     cursor = findNamespace(cursor)
   elif what == 'documentable':
     cursor = findDocumentable(cursor)
-  return cursor and decodeCursor(cursor)
+    recurse_level = 0 # no need to find children in this use case
+  return cursor and decodeCursor(cursor, recurse_level)
   # print("mangled_name ", cursor.mangled_name)
 
 #======================================================================
