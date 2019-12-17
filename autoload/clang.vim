@@ -84,7 +84,7 @@ endfunction
 " ## Exported functions {{{1
 " Function: clang#can_plugin_be_used() {{{3
 function! clang#can_plugin_be_used() abort
-  return !empty(clang#libpath())
+  return lh#option#is_set(clang#libpath())
 endfunction
 
 " # options {{{2
@@ -242,7 +242,7 @@ if exists('l:error')
   call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error.".\nPlease install clang Python bindings.")
   " Reset the g:clang_library_path variable that tells whether the
   " plugin can be used
-  let g:clang_library_path = ""
+  let g:clang_library_path = lh#option#unset('vim-clang cannot be used: Python error: '.l:error.".\nPlease install clang Python bindings.")
   return 0
 endif
   let ts = getftime(s:clangpy_script)
@@ -271,7 +271,7 @@ EOF
 if exists('l:error')
   " Reset the g:clang_library_path variable that tells whether the
   " plugin can be used
-  let g:clang_library_path = ""
+  let g:clang_library_path = lh#option#unset('vim-clang cannot be used: Python error: '.l:error)
   call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error)
   return 0
 endif
