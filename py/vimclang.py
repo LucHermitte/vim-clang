@@ -302,12 +302,15 @@ def decodeType(type, can_recurse = True):                   # {{{2
       'adress_space'          : type.get_address_space(),
       'typedef_name'          : type.get_typedef_name(),
       # 'class_type'          : str(type.get_class_type()),
-      # 'named_type'          : str(type.get_named_type()),
       'pod'                   : type.is_pod(),
       'align'                 : type.get_align(),
       'size'                  : type.get_size(),
-      'ref_qualifier'         : decodeRefQualifier(type.get_ref_qualifier())
+      'ref_qualifier'         : decodeRefQualifier(type.get_ref_qualifier()),
+      # 'declaration'           : decodeCursor(type.get_declaration(), False)
+      # 'declaration'           : type.get_declaration().spelling
       }
+  #if can_recurse:
+  #  res['named_type'] = decodeType(type.get_named_type())
   if type.kind in k_function_types:
     res['result']        = decodeType(type.get_result())
   elif type.kind in k_array_types:
@@ -598,8 +601,22 @@ def getFunctions(cursor, filter = None):                    # {{{2
         functions += [decodeCursor(node)]
   return functions
 
+def signature(func):                                        # {{{2
+  return getattr(func, 'signature', func.type.spelling)
+
+def cleanNamespaces(string):                                # {{{2
+  import re
+  return re.sub(r"\w+::", "", string)
+
 def areSameFunctions(func1, func2):                         # {{{2
-  return func1.spelling == func2.spelling and getattr(func1, 'signature', func1.type.spelling) == getattr(func2, 'signature', func2.type.spelling)
+  # FIXME: There could be scope differences between two signature of the same
+  # function
+  return func1.spelling == func2.spelling and signature(func1) == signature(func2)
+
+def areSameFunctionsSimplified(ref_spelling, ref_signature, func): # {{{2
+  res = func.spelling == ref_spelling and cleanNamespaces(signature(func)) == ref_signature
+  verbose("check %s/%s  VS  %s/%s ==> %s"%(func.spelling, cleanNamespaces(signature(func)), ref_spelling, ref_signature, res))
+  return res
 
 def getVirtualNonFinalFunctions(cursor):                    # {{{2
   # TODO: how should the merging from multiple inheritance work???
@@ -622,6 +639,16 @@ def getVirtualNonFinalFunctions(cursor):                    # {{{2
         # update in base_functions
         funcs = [func for func in base_functions
             if areSameFunctions(func, node) ]
+
+        if len(funcs) == 0:
+          # Sometimes, some function signatures contain annoted scopes,
+          # sometimes not. We need to compare cleansed signatures
+          # NB: We should only clear namespaces from the implicated classes. But
+          # let's clear all of them for now.
+          node_signature = cleanNamespaces(signature(node))
+          funcs = [func for func in base_functions
+              if areSameFunctionsSimplified(node.spelling, node_signature, func)]
+        verbose("==> funcs: %s" % ([f.spelling for f in funcs],))
         assert(len(funcs) == 1)
         funcs[0].defined_in += [cursor.spelling]
         funcs[0].pure        = False
