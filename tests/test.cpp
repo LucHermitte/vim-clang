@@ -39,6 +39,13 @@ struct S0 {
     virtual int v_pub_pri();
     virtual int pure() = 0;
 private:
+    /**
+     * Sample doc.
+     * @param[in] s  bla
+     *
+     * @return bli
+     * @throw None if `Toto`
+     */
     virtual int constone(S const& s) const noexcept(Toto);
     virtual int constone2(S const& s) const noexcept(Toto) = 0;
 };

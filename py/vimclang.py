@@ -455,6 +455,7 @@ def decodeFunction(cursor, recurse_level = 1):              # {{{2
   res['override'] = CursorKind.CXX_OVERRIDE_ATTR in children_kinds
   res['final']    = CursorKind.CXX_FINAL_ATTR in children_kinds
   res['scope']    = getScope(cursor)
+  res['comment']  = cursor.raw_comment or ''
 
   # print('tokens: %s' % [[t.spelling, t.kind, decodeExtent(t.extent)] for t in cursor.get_tokens()])
   # align?
@@ -696,6 +697,7 @@ def getNonOverriddenVirtualFunctions(cursor):               # {{{2
     # The access specifier will be the one from the oldest class in a hierarchy
     new_func['access']     = decodeAccessSpecifier(func.access_specifier)
     new_func['extent']     = decodeExtent(func.extent)
+    new_func['comment']    = func.raw_comment or ''
     res += [new_func]
   return res
 
