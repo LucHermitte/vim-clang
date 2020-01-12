@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  17th Dec 2019
+" Last Update:  12th Jan 2020
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -83,15 +83,17 @@ endfunction
 "------------------------------------------------------------------------
 " ## Exported functions {{{1
 " Function: clang#can_plugin_be_used() {{{3
+let s:can_be_used = 1
 function! clang#can_plugin_be_used() abort
-  return lh#option#is_set(clang#libpath())
+  return s:can_be_used
+  " return lh#option#is_set(clang#libpath())
 endfunction
 
 " # options {{{2
-let s:k_on_windows = lh#os#OnDOSWindows()
-let s:k_split_paths      = s:k_on_windows ? '[;,]' : ':'
-let s:k_dynlib_ext = s:k_on_windows ? 'dll*' : 'so*'
-let s:k_libclang   = 'libclang.' . s:k_dynlib_ext
+let s:k_on_windows  = lh#os#OnDOSWindows()
+let s:k_split_paths = s:k_on_windows ? '[;,]' : ':'
+let s:k_dynlib_ext  = s:k_on_windows ? 'dll*' : 'so*'
+let s:k_libclang    = 'libclang.' . s:k_dynlib_ext
 
 " Function: clang#libpath() {{{3
 " TODO: This function will need some work in order to:
@@ -218,6 +220,14 @@ function! clang#update_clic(project_name) abort
 endfunction
 
 " # python module init {{{2
+" Try to reinitialize dependencies detections
+" Function: clang#_reset() {{{3
+function! clang#_reset() abort
+  let s:can_be_used = 1
+  call lh#let#unlet('g:clang_library_path')
+  return clang#_init_python()
+endfunction
+
 " Function: clang#_init_python() {{{3
 " The Python module will be loaded only if it has changed since the last time
 " this autoload plugin has been sourced. It is of course loaded on the first
@@ -229,6 +239,7 @@ let s:clangpy_script      = s:plugin_root_path . '/py/vimclang.py'
 function! clang#_init_python() abort
   if !filereadable(s:clangpy_script)
     " This should not happen!
+    let s:can_be_used = 0
     throw "Cannot find vim-clang python script: ".s:clangpy_script
   endif
   pyx <<EOF
@@ -240,8 +251,7 @@ except Exception as e:
 EOF
 if exists('l:error')
   call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error.".\nPlease install clang Python bindings.")
-  " Reset the g:clang_library_path variable that tells whether the
-  " plugin can be used
+  let s:can_be_used = 0
   let g:clang_library_path = lh#option#unset('vim-clang cannot be used: Python error: '.l:error.".\nPlease install clang Python bindings.")
   return 0
 endif
@@ -252,7 +262,7 @@ endif
   " clang_complete python part is expected to be already initialized
   call s:Verbose("Importing ".s:clangpy_script)
   pyx << EOF
-import sys, vim
+import sys
 plugin_root_path = vim.eval('s:plugin_root_path')
 if not plugin_root_path in sys.path:
   sys.path = [ plugin_root_path ] + sys.path
@@ -260,21 +270,23 @@ elif int(vim.eval('clang#verbose()')):
   print("sys.path already contains %s" % (plugin_root_path))
 EOF
   exe 'pyxfile ' . s:clangpy_script
+  let libclangpath = clang#libpath()
+  call s:Verbose('libclangpath = %1', libclangpath)
   pyx << EOF
-libclangpath = vim.eval('clang#libpath()')
-verbose('libclangpath = %s'%(libclangpath,))
+#libclangpath = vim.eval('clang#libpath()')
+#verbose('libclangpath = %s'%(libclangpath,))
+libclangpath = vim.eval('l:libclangpath')
 try:
   initVimClang(libclangpath)
 except Exception as e:
   vim.command('let l:error = "%s"' %(e,))
 EOF
-if exists('l:error')
-  " Reset the g:clang_library_path variable that tells whether the
-  " plugin can be used
-  let g:clang_library_path = lh#option#unset('vim-clang cannot be used: Python error: '.l:error)
-  call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error)
-  return 0
-endif
+  if exists('l:error')
+    let s:can_be_used = 0
+    let g:clang_library_path = lh#option#unset('vim-clang cannot be used: Python error: '.l:error)
+    call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error)
+    return 0
+  endif
   let s:py_script_timestamp = ts
   return 1
 endfunction
@@ -418,6 +430,7 @@ endfunction
 " ## Initialize module  {{{1
 if empty(lh#python#best_still_avail())
   call lh#notify#once("+python support is required for libclang support")
+  let s:can_be_used = 0
 else
   call clang#_init_python()
 endif
