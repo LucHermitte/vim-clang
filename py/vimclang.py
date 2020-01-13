@@ -1057,7 +1057,10 @@ typeKinds = dict({
 def initVimClang(library_path = None):
   global index
   if library_path:
-    Config.set_library_path(library_path)
+    if Config.loaded:
+      print("Warning: clang.cindex has already been configured, cannot set another path to clang python bindings...")
+    else:
+      Config.set_library_path(library_path)
 
   #Config.set_compatibility_check(False)
   index = Index.create()
