@@ -47,7 +47,7 @@ you'll be interested in [Bear](https://github.com/rizsotto/Bear). Having a
 compilation database will also help with static analysers like `clang-tidy` and
 all the C&C++ LSP servers.
 
-#### `clang#compilation_database()`
+#### `clang#user_options()`
 Used internally to fetch user specified options from `g:clang_user_options` and
 `b:clang_user_options`.
 
