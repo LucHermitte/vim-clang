@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  12th Jan 2020
+" Last Update:  17th Jan 2020
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -136,8 +136,15 @@ function! clang#compilation_database() abort
   if lh#option#is_set(filename)
     let filename .= '/compile_commands.json'
     let found = filereadable(filename)
+    if !found
+      let filename = lh#option#get('paths.sources')
+      if lh#option#is_set(filename)
+        let filename .= '/compile_commands.json'
+        let found = filereadable(filename)
+      endif
+    endif
     call s:Verbose("Compilation database ".(found ? "found: '%1'" : "not found"), filename)
-    return filename
+    return found ? filename : ''
   else
     return ''
   endif
