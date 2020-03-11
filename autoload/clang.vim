@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  17th Jan 2020
+" Last Update:  11th Mar 2020
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -132,22 +132,29 @@ endfunction
 
 " Function: clang#compilation_database() {{{3
 function! clang#compilation_database() abort
-  let filename = lh#option#get('BTW.compilation_dir')
-  if lh#option#is_set(filename)
-    let filename .= '/compile_commands.json'
-    let found = filereadable(filename)
-    if !found
-      let filename = lh#option#get('paths.sources')
-      if lh#option#is_set(filename)
-        let filename .= '/compile_commands.json'
-        let found = filereadable(filename)
+  try
+    " 1- Try {BTW.compilation_dir}/compile_commands.json
+    let filename = lh#option#get('BTW.compilation_dir')
+    if lh#option#is_set(filename)
+      let filename .= '/compile_commands.json'
+      let found = filereadable(filename)
+      if found
+        return filename
       endif
     endif
-    call s:Verbose("Compilation database ".(found ? "found: '%1'" : "not found"), filename)
+
+    " 2- Try {paths.sources}/compile_commands.json
+    let filename = lh#option#get('paths.sources')
+    if lh#option#is_set(filename)
+      let filename .= '/compile_commands.json'
+      let found = filereadable(filename)
+    endif
+
+    " 3- else => nothing
     return found ? filename : ''
-  else
-    return ''
-  endif
+  finally
+    call s:Verbose("Compilation database ".(found ? "found: '%1'" : "not found"), filename)
+  endtry
 endfunction
 
 " Function: clang#compilation_database_path() {{{3
