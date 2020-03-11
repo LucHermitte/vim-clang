@@ -505,8 +505,9 @@ def decodeVariable(cursor):                                 # {{{2
   return res
 
 def decodeExtent(sourceLocation):                           # {{{2
+  print(sourceLocation)
   res = {
-      'filename': sourceLocation.start.file.name,
+      'filename': sourceLocation.start.file.name if sourceLocation.start.file else '' ,
       'start'   : {
         'lnum': sourceLocation.start.line,
         'col' : sourceLocation.start.column
