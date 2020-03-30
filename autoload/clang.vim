@@ -5,7 +5,7 @@
 " Version:      2.0.0
 let s:k_version = 200
 " Created:      07th Jan 2013
-" Last Update:  11th Mar 2020
+" Last Update:  30th Mar 2020
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -403,7 +403,7 @@ function! clang#extract_from_extent(extent, what) abort
         \ a:extent.end.lnum, a:extent.end.col)
   let lines = lines[(a:extent.start.lnum-1) : (a:extent.end.lnum-1)]
   " First, trim the end, in case there is only one line
-  let lines[-1] = lines[0][: a:extent.end.col-2]
+  let lines[-1] = lines[-1][: a:extent.end.col-2]
   let lines[0]  = lines[0][a:extent.start.col-1 :]
   return lines
 endfunction
