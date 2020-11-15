@@ -2,10 +2,10 @@
 " File:         autoload/clang.vim                                      {{{1
 " Author:       Luc Hermitte <EMAIL:hermitte {at} free {dot} fr>
 "		<URL:https://github.com/LucHermitte/vim-clang>
-" Version:      2.0.0
-let s:k_version = 200
+" Version:      0.0.4
+let s:k_version = 004
 " Created:      07th Jan 2013
-" Last Update:  30th Mar 2020
+" Last Update:  15th Nov 2020
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -264,7 +264,7 @@ except Exception as e:
   vim.command('let l:error = "%s"' %(e,))
 EOF
 if exists('l:error')
-  call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error.".\nPlease install clang Python bindings.")
+  call lh#common#warning_msg('vim-clang cannot be used: Python '.&pyxversion.' error: '.l:error.".\nPlease install clang Python bindings.")
   let s:can_be_used = 0
   let g:clang_library_path = lh#option#unset('vim-clang cannot be used: Python error: '.l:error.".\nPlease install clang Python bindings.")
   return 0
@@ -298,7 +298,7 @@ EOF
   if exists('l:error')
     let s:can_be_used = 0
     let g:clang_library_path = lh#option#unset('vim-clang cannot be used: Python error: '.l:error)
-    call lh#common#warning_msg('vim-clang cannot be used: Python error: '.l:error)
+    call lh#common#warning_msg('vim-clang cannot be used: Python '.&pyxversion.' error: '.l:error)
     return 0
   endif
   let s:py_script_timestamp = ts
