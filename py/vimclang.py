@@ -258,8 +258,9 @@ def getScope(cursor = None):                                # {{{2
 def find(kinds, cursor = None):                             # {{{2
   cursor = cursor or getCurrentCursor()
   while cursor and not cursor.kind in kinds:
-    # print("-------", decodeCursor(cursor))
+    verbose("------- %s" % (decodeCursor(cursor),))
     cursor = cursor.semantic_parent
+    # cursor = cursor.lexical_parent
   return cursor
 
 def findFunction(cursor = None):                            # {{{2
@@ -556,6 +557,7 @@ def getCurrentSymbol(what = None):                          # {{{2
   global debug
   debug = int(vim.eval("clang#verbose()")) == 1
   cursor = getCurrentCursor()
+  verbose('getCurrentSymbol(%s)' % (what,))
   recurse_level = 1
   if what == 'function':
     cursor = findFunction(cursor)
@@ -566,6 +568,8 @@ def getCurrentSymbol(what = None):                          # {{{2
   elif what == 'documentable':
     cursor = findDocumentable(cursor)
     recurse_level = 0 # no need to find children in this use case
+  if not cursor:
+    verbose("Cannot decode a %s as in %s we find a %s"%(what, cursor, decodeCursor(cursor)))
   return cursor and decodeCursor(cursor, recurse_level)
   # print("mangled_name ", cursor.mangled_name)
 
