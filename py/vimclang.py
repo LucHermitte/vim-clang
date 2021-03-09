@@ -25,6 +25,7 @@ import time
 import re
 import threading
 import linecache
+import traceback
 from clang.cindex import *
 # import clang.cindex
 # }}}1
@@ -554,23 +555,33 @@ def decodeCursor(cursor, recurse_level = 1):                # {{{2
   return res
 
 def getCurrentSymbol(what = None):                          # {{{2
-  global debug
-  debug = int(vim.eval("clang#verbose()")) == 1
-  cursor = getCurrentCursor()
-  verbose('getCurrentSymbol(%s)' % (what,))
-  recurse_level = 1
-  if what == 'function':
-    cursor = findFunction(cursor)
-  elif what == 'class':
-    cursor = findClass(cursor)
-  elif what == 'namespace':
-    cursor = findNamespace(cursor)
-  elif what == 'documentable':
-    cursor = findDocumentable(cursor)
-    recurse_level = 0 # no need to find children in this use case
-  if not cursor:
-    verbose("Cannot decode a %s as in %s we find a %s"%(what, cursor, decodeCursor(cursor)))
-  return cursor and decodeCursor(cursor, recurse_level)
+  try:
+    global debug
+    debug = int(vim.eval("clang#verbose()")) == 1
+    cursor0 = getCurrentCursor()
+    verbose('getCurrentSymbol(%s)' % (what,))
+    recurse_level = 1
+    if what == 'function':
+      cursor = findFunction(cursor0)
+    elif what == 'class':
+      cursor = findClass(cursor0)
+    elif what == 'namespace':
+      cursor = findNamespace(cursor0)
+    elif what == 'documentable':
+      cursor = findDocumentable(cursor0)
+      recurse_level = 0 # no need to find children in this use case
+    if not cursor and debug:
+      text = vim.eval('clang#extract_from_extent('+str(decodeExtent(cursor0.extent))+', "'+what+'?")')
+      verbose("\n\nWARNING: Cannot decode a %s as in %s we find a %s\n--> %s"
+          % (what, cursor0, decodeCursor(cursor0), text))
+    return cursor and decodeCursor(cursor, recurse_level)
+  except Exception as e:
+    if debug:
+      print("ERROR: %s" % (e,))
+      # Note: the following requires Python 3.5+
+      tb1 = traceback.TracebackException.from_exception(e)
+      print(''.join(tb1.format()))
+    raise
   # print("mangled_name ", cursor.mangled_name)
 
 #======================================================================
