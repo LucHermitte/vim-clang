@@ -3,8 +3,7 @@
 Module to interact with libclang (and
 [clang\_indexer](https://github.com/LucHermitte/clang_indexer) DB) from Vim.
 
-Features:
----------
+## Features:
 * Provides an [API](doc/API.md) to request information about the symbol under
   the cursor for Vim.
 * Inter-operates with
@@ -25,8 +24,7 @@ Features:
 * Can directly be used as long as clang Python bindings are installed; IOW, no
   need to compile any other library.
 
-Rationale:
-----------
+## Rationale:
 
 While code indexation is already taken care of by LSP servers and plugins like
 [COC](https://github.com/neoclide/coc.nvim) when plugged with
@@ -54,8 +52,7 @@ instead of being done in pure vimscript:
   that expands a `switch`-snippet with all the values from an enumeration
 
 
-Limitations:
-------------
+## Limitations:
 
 ### Translation Units
 The [inspection API](doc/API.md) provided from V2 can only analyse the current
@@ -97,8 +94,7 @@ Workarounds:
   `clang_getTemplateCursorKind` C function that has no binding in
   `clang.cindex`.
 
-Installation Requirements:
--------------------------
+## Installation Requirements:
 * [Vim 8.0+](http://www.vim.org), compiled with python support,
 * Python 3.x (actually, I'll try to support Python 2.7.x, but with no guaranties)
 * [lh-vim-lib](http://github.com/LucHermitte/lh-vim), v4.7.1+
@@ -119,8 +115,41 @@ clang Python bindings, **and** optionally clang\_indexer by yourself.
 
 Note: this script hasn't been registered yet to VAM addons list.
 
-Options:
---------
+### Installing clang Python bindings
+This part could be very tricky.
+
+If you install clang by compiling it manually with its Python bindings, you
+won't have any more troubles with this plugin.
+
+However, if you use prepackaged clang Python bindings, several things will need
+to match:
+
+- The version of libclang with the version of clang Python bindings ;
+  hopefully, this part should be transparent thanks to packets managers.
+- The version of Python used from Vim with the version expected from Python
+  bindings.
+
+    For instance, on my Ubuntu 18 machine, if I install `python-clang`, it will
+    provide `/usr/lib/python2.7/dist-packages/clang/cindex.py`. If I use
+    Python2 from Vim, this'll be perfect. If I use Python3, then I won't be
+    able to do a
+
+    ```vim
+    :python3 from clang.cindex import *'
+    ```
+
+    from Vim.
+
+    Fortunately I can install `python3-clang-10` packet... which won't be
+    compatible with using Python2 from Vim.
+
+    This plugin tries to support any version of Python through the use of
+    [`:pyx`](http://vimhelp.appspot.com/if_pyth.txt.html#%3apyx), but Vim won't
+    permit to dynamic switch from one flavour of Python to the other, and
+    you'll still need right `cindex.py` file in the right place -- yeah,
+    whatever version of python used, it'll be the same files
+
+## Options:
 * `g:clang_library_path` to force the version of `libclang.so` to use. By
   default, this library is searched in `$LD_LIBRARY_PATH`, then in `lib/`
   directories alongside `$PATH`.
@@ -134,16 +163,14 @@ Options:
   `g:clang_key_subclasses`, to override default choices to trigger vim-clang
   features.
 
-To do list:
------------
+## To do list:
 * Interface _à la_ `taglist()`
 * Reimplements features from lh-dev and `lh-cpp#analysisLib*`.
 * Add unit tests
 * Use `$CFLAGS` and `$CXXFLAGS` when there is no compilation database
 * Have the system includes be compatible with the `-stdlib` specified, if any
 
-Alternative Solutions:
-----------------------
+## Alternative Solutions:
 * [libclang-vim](https://github.com/libclang-vim/libclang-vim), which requires
   to compiles a C++ library
 * [cppast](https://github.com/foonathan/cppast), which also requires to
@@ -153,16 +180,14 @@ Alternative Solutions:
   Note: cppast is just an alternative solution to libclang, it doesn't provide
   any Python binding, nor Vim bindings.
 
-Disclaimer:
------------
+## Disclaimer:
 This module used to be a fork of @exclipy's fork of
 [clang\_complete](<https://github.com/exclipy/clang_complete>).
 The functions dedicated to the interaction with clang\_indexer have been extracted,
 and a few more have been added.
 
 
-Licence:
---------
+## Licence:
 `getReferences()` and `getCurrentUsr()` functions are courtesy of exclipy.
 
 Copyright 2013-2019 Luc Hermitte
