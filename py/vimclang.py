@@ -225,10 +225,10 @@ k_array_types = [
 
 #======================================================================
 ## Positionning cursor                   {{{1
-def getCurrentCursor():                                     # {{{2
+def getCurrentCursor(line = None, col = None):              # {{{2
   tu = getCurrentTranslationUnit()
   file = tu.get_file(vim.current.buffer.name)
-  loc = tu.get_location(file.name, (getCurrentLine(), getCurrentColumn()))
+  loc = tu.get_location(file.name, (line or getCurrentLine(), col or getCurrentColumn()))
   cursor = Cursor.from_location(tu, loc)
   verbose("Location: %s" % (loc,))
   verbose("Cursor: %s" % (cursor.displayname, ))
@@ -265,7 +265,16 @@ def find(kinds, cursor = None):                             # {{{2
   return cursor
 
 def findFunction(cursor = None):                            # {{{2
-  return find(k_function_kinds, cursor)
+  cursor = cursor or getCurrentCursor()
+  res = find(k_function_kinds, cursor)
+  if not res and (cursor.kind == CursorKind.TYPE_REF):
+    # maybe we are on a return type, let's see what's next
+    tu = cursor.translation_unit
+    cursor2 = Cursor.from_location(tu, cursor.extent.end)
+    verbose("Check whether location after type ref is a function: %s" % (cursor.extent.end,))
+    verbose("Cursor: %s" % (cursor2.displayname, ))
+    res = find(k_function_kinds, cursor2)
+  return res
 
 def findScope(cursor = None):                               # {{{2
   return find([CursorKind.NAMESPACE] + k_class_kinds, cursor)
@@ -716,6 +725,14 @@ def getNonOverriddenVirtualFunctions(cursor):               # {{{2
     new_func['comment']    = func.raw_comment or ''
     res += [new_func]
   return res
+
+def getClassName(cursor = None):                            # {{{2
+  cls_info = findClass(cursor)
+  return cls_info and cls_info.spelling
+
+def getNamespaceName(cursor = None):                        # {{{2
+  ns_info = findNamespace(cursor)
+  return ns_info and ns_info.spelling
 
 # }}}1
 #======================================================================
