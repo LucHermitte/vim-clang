@@ -5,7 +5,7 @@
 " Version:      0.0.4
 let s:k_version = 004
 " Created:      07th Jan 2013
-" Last Update:  15th Nov 2020
+" Last Update:  19th Mar 2021
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -78,6 +78,11 @@ endfunction
 
 function! clang#debug(expr) abort
   return eval(a:expr)
+endfunction
+
+" Function: clang#_crt_symbol([what]) {{{3
+function! clang#_crt_symbol(...) abort
+  echo lh#dict#print_as_tree(call('clang#get_symbol', a:000))
 endfunction
 
 "------------------------------------------------------------------------
@@ -405,6 +410,58 @@ function! clang#extract_from_extent(extent, what) abort
   " First, trim the end, in case there is only one line
   let lines[-1] = lines[-1][: a:extent.end.col-2]
   let lines[0]  = lines[0][a:extent.start.col-1 :]
+  return lines
+endfunction
+
+" Function: clang#cut_extent(extent, what) {{{2
+" Extents seems to be specified as [start, end)
+" TODO: check UTF-8...
+function! clang#cut_extent(extent, what) abort
+  if resolve(fnamemodify(a:extent.filename, ':p')) == resolve(expand('%:p'))
+    " Current buffer may have been changed since last save
+    " => need to use its current state
+    let lines = getline(1, '$')
+  else
+    throw "Sorry we can only cut the extent from the current buffer"
+  endif
+  let s = a:extent.start.lnum
+  let e = a:extent.end.lnum
+  call s:Verbose("Cut %1 from %2: l:%3, c:%4 ... l:%5, c:%6",
+        \ a:what, a:extent.filename,
+        \ s, a:extent.start.col,
+        \ e, a:extent.end.col)
+  let lines = lines[(s-1) : (e-1)]
+  " First, trim the end, in case there is only one line
+  call lh#assert#value(a:extent.start.col).is_gt(0, "start.col value is supposed to start at the first column")
+  call lh#assert#value(a:extent.end.col).is_gt(1, "end.col value is supposed to be after last char to cut")
+  let head = a:extent.start.col > 1 ? lines[0 ][ : a:extent.start.col-2] : ''
+  let tail = lines[-1][ a:extent.end.col-1 : ]
+  let lines[-1] = lines[-1][: a:extent.end.col-2]
+  let lines[0]  = lines[0][a:extent.start.col-1 :]
+
+  if s == e
+    if head.tail =~ '^\s*$'
+      silent! exe s.'delete _'
+    else
+      call setline(s, head.tail)
+    endif
+  else
+    if head =~ '^\s*$'
+      let f = s
+    else
+      let f = s + 1
+      call setline(s, head)
+    endif
+    if tail =~ '^\s*$'
+      let l = e
+    else
+      let l = e - 1
+      call setline(e, tail)
+    endif
+    if f <= l
+      silent! exe f.','.l.'delete _'
+    endif
+  endif
   return lines
 endfunction
 
