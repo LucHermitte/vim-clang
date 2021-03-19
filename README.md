@@ -82,9 +82,11 @@ Along the information I've found missing, I've identified so far:
 - It doesn't report how parameters are formatted, and thus whether newlines are
   used in between, information I'd need in `:GOTOIMPL`. (may be if we analyse
   tokens...?)
+- It cannot identify the full initializer-list in a constructor definition, and
+  return its extend (that I need in `:GOTOIMPL` and `:Constructor` commands)
 
 Workarounds:
-- `get_arguments()` doesn't work on template functions. Hopefully there is a
+- `get_arguments()` doesn't work on template functions. Fortunately there is a
   workaround: we can analyse _children_.
 - The presence of `final` and `override` keywords can be found in the
   _children_.
@@ -190,7 +192,7 @@ and a few more have been added.
 ## Licence:
 `getReferences()` and `getCurrentUsr()` functions are courtesy of exclipy.
 
-Copyright 2013-2019 Luc Hermitte
+Copyright 2013-2021 Luc Hermitte
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
