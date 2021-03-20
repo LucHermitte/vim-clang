@@ -5,7 +5,7 @@
 " Version:      0.0.3
 let s:k_version = 003
 " Created:      19th Mar 2021
-" Last Update:  19th Mar 2021
+" Last Update:  20th Mar 2021
 "------------------------------------------------------------------------
 " Description:
 "       Test extent related functions
@@ -31,13 +31,13 @@ endfunction
 "------------------------------------------------------------------------
 function! s:Test_extent_bla_1l()
   SetBufferContent trim << EOF
-  bla{ }
+  bla{µ}
   EOF
   let e = {'filename': 'foo.bar', 'start': {'lnum': 1, 'col': 4}, 'end': {'lnum': 1, 'col': 7}}
   let lines = clang#extract_from_extent(e, 'get')
-  AssertEquals(lines, ['{ }'])
+  AssertEquals(lines, ['{µ}'])
   let lines = clang#cut_extent(e, 'cut')
-  AssertEquals(lines, ['{ }'])
+  AssertEquals(lines, ['{µ}'])
   AssertBufferMatch trim << EOF
   bla
   EOF
@@ -45,13 +45,13 @@ endfunction
 
 function! s:Test_extent_bla_bli_1l()
   SetBufferContent trim << EOF
-  bla{ }bli
+  bla{µ}bli
   EOF
   let e = {'filename': 'foo.bar', 'start': {'lnum': 1, 'col': 4}, 'end': {'lnum': 1, 'col': 7}}
   let lines = clang#extract_from_extent(e, 'get')
-  AssertEquals(lines, ['{ }'])
+  AssertEquals(lines, ['{µ}'])
   let lines = clang#cut_extent(e, 'cut')
-  AssertEquals(lines, ['{ }'])
+  AssertEquals(lines, ['{µ}'])
   AssertBufferMatch trim << EOF
   blabli
   EOF
@@ -59,14 +59,14 @@ endfunction
 
 function! s:Test_extent_bla_2l()
   SetBufferContent trim << EOF
-  bla{
+  bla{µ
   }
   EOF
   let e = {'filename': 'foo.bar', 'start': {'lnum': 1, 'col': 4}, 'end': {'lnum': 2, 'col': 2}}
   let lines = clang#extract_from_extent(e, 'get')
-  AssertEquals(lines, ['{','}'])
+  AssertEquals(lines, ['{µ','}'])
   let lines = clang#cut_extent(e, 'cut')
-  AssertEquals(lines, ['{','}'])
+  AssertEquals(lines, ['{µ','}'])
   AssertBufferMatch trim << EOF
   bla
   EOF
@@ -74,14 +74,14 @@ endfunction
 
 function! s:Test_extent_bla_bli_2l()
   SetBufferContent trim << EOF
-  bla{
+  bla{µ
   }bli
   EOF
   let e = {'filename': 'foo.bar', 'start': {'lnum': 1, 'col': 4}, 'end': {'lnum': 2, 'col': 2}}
   let lines = clang#extract_from_extent(e, 'get')
-  AssertEquals(lines, ['{','}'])
+  AssertEquals(lines, ['{µ','}'])
   let lines = clang#cut_extent(e, 'cut')
-  AssertEquals(lines, ['{','}'])
+  AssertEquals(lines, ['{µ','}'])
   AssertBufferMatch trim << EOF
   bla
   bli
@@ -90,26 +90,26 @@ endfunction
 
 function! s:Test_extent_1l()
   SetBufferContent trim << EOF
-  { }
+  {µ}
   EOF
   let e = {'filename': 'foo.bar', 'start': {'lnum': 1, 'col': 1}, 'end': {'lnum': 1, 'col': 4}}
   let lines = clang#extract_from_extent(e, 'get')
-  AssertEquals(lines, ['{ }'])
+  AssertEquals(lines, ['{µ}'])
   let lines = clang#cut_extent(e, 'cut')
-  AssertEquals(lines, ['{ }'])
+  AssertEquals(lines, ['{µ}'])
   AssertBufferMatch trim << EOF
   EOF
 endfunction
 
 function! s:Test_extent_bli_1l()
   SetBufferContent trim << EOF
-  { }bli
+  {µ}bli
   EOF
   let e = {'filename': 'foo.bar', 'start': {'lnum': 1, 'col': 1}, 'end': {'lnum': 1, 'col': 4}}
   let lines = clang#extract_from_extent(e, 'get')
-  AssertEquals(lines, ['{ }'])
+  AssertEquals(lines, ['{µ}'])
   let lines = clang#cut_extent(e, 'cut')
-  AssertEquals(lines, ['{ }'])
+  AssertEquals(lines, ['{µ}'])
   AssertBufferMatch trim << EOF
   bli
   EOF
@@ -117,28 +117,28 @@ endfunction
 
 function! s:Test_extent_2l()
   SetBufferContent trim << EOF
-  {
+  {µ
   }
   EOF
   let e = {'filename': 'foo.bar', 'start': {'lnum': 1, 'col': 1}, 'end': {'lnum': 2, 'col': 2}}
   let lines = clang#extract_from_extent(e, 'get')
-  AssertEquals(lines, ['{', '}'])
+  AssertEquals(lines, ['{µ', '}'])
   let lines = clang#cut_extent(e, 'cut')
-  AssertEquals(lines, ['{', '}'])
+  AssertEquals(lines, ['{µ', '}'])
   AssertBufferMatch trim << EOF
   EOF
 endfunction
 
 function! s:Test_extent_bli_2l()
   SetBufferContent trim << EOF
-  {
+  {µ
   }bli
   EOF
   let e = {'filename': 'foo.bar', 'start': {'lnum': 1, 'col': 1}, 'end': {'lnum': 2, 'col': 2}}
   let lines = clang#extract_from_extent(e, 'get')
-  AssertEquals(lines, ['{', '}'])
+  AssertEquals(lines, ['{µ', '}'])
   let lines = clang#cut_extent(e, 'cut')
-  AssertEquals(lines, ['{', '}'])
+  AssertEquals(lines, ['{µ', '}'])
   AssertBufferMatch trim << EOF
   bli
   EOF

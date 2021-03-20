@@ -402,20 +402,23 @@ function! clang#extract_from_extent(extent, what) abort
     " libclang has certainly parsed a saved file => use readfile
     let lines = readfile(a:extent.filename)
   endif
+  let ls = a:extent.start.lnum
+  let le = a:extent.end.lnum
+  let sc = a:extent.start.col
+  let ec = a:extent.end.col
   call s:Verbose("Extract %1 from %2: l:%3, c:%4 ... l:%5, c:%6",
         \ a:what, a:extent.filename,
-        \ a:extent.start.lnum, a:extent.start.col,
-        \ a:extent.end.lnum, a:extent.end.col)
-  let lines = lines[(a:extent.start.lnum-1) : (a:extent.end.lnum-1)]
+        \ a:extent.start.lnum, sc,
+        \ a:extent.end.lnum, ec)
+  let lines = lines[(ls-1) : (le-1)]
   " First, trim the end, in case there is only one line
-  let lines[-1] = lines[-1][: a:extent.end.col-2]
-  let lines[0]  = lines[0][a:extent.start.col-1 :]
+  let lines[-1] = lh#encoding#strpart(lines[-1], 0, ec-1)
+  let lines[0]  = lh#encoding#strpart(lines[0], sc-1)
   return lines
 endfunction
 
 " Function: clang#cut_extent(extent, what) {{{2
 " Extents seems to be specified as [start, end)
-" TODO: fix: extent are expressed in char positions, not in bytes
 function! clang#cut_extent(extent, what) abort
   if resolve(fnamemodify(a:extent.filename, ':p')) == resolve(expand('%:p'))
     " Current buffer may have been changed since last save
@@ -424,39 +427,41 @@ function! clang#cut_extent(extent, what) abort
   else
     throw "Sorry we can only cut the extent from the current buffer"
   endif
-  let s = a:extent.start.lnum
-  let e = a:extent.end.lnum
+  let ls = a:extent.start.lnum
+  let le = a:extent.end.lnum
+  let sc = a:extent.start.col
+  let ec = a:extent.end.col
   call s:Verbose("Cut %1 from %2: l:%3, c:%4 ... l:%5, c:%6",
         \ a:what, a:extent.filename,
-        \ s, a:extent.start.col,
-        \ e, a:extent.end.col)
-  let lines = lines[(s-1) : (e-1)]
+        \ ls, sc,
+        \ le, ec)
+  let lines = lines[(ls-1) : (le-1)]
   " First, trim the end, in case there is only one line
-  call lh#assert#value(a:extent.start.col).is_gt(0, "start.col value is supposed to start at the first column")
-  call lh#assert#value(a:extent.end.col).is_gt(1, "end.col value is supposed to be after last char to cut")
-  let head = a:extent.start.col > 1 ? lines[0 ][ : a:extent.start.col-2] : ''
-  let tail = lines[-1][ a:extent.end.col-1 : ]
-  let lines[-1] = lines[-1][: a:extent.end.col-2]
-  let lines[0]  = lines[0][a:extent.start.col-1 :]
+  call lh#assert#value(sc).is_gt(0, "start.col value is supposed to start at the first column")
+  call lh#assert#value(ec).is_gt(1, "end.col value is supposed to be after last char to cut")
+  let head = lh#encoding#strpart(lines[ 0], 0, sc-1)
+  let tail = lh#encoding#strpart(lines[-1], ec-1)
+  let lines[-1] = lh#encoding#strpart(lines[-1], 0, ec-1)
+  let lines[0]  = lh#encoding#strpart(lines[ 0], sc-1)
 
-  if s == e
+  if ls == le
     if head.tail =~ '^\s*$'
-      silent! exe s.'delete _'
+      silent! exe ls.'delete _'
     else
-      call setline(s, head.tail)
+      call setline(ls, head.tail)
     endif
   else
     if head =~ '^\s*$'
-      let f = s
+      let f = ls
     else
-      let f = s + 1
-      call setline(s, head)
+      let f = ls + 1
+      call setline(ls, head)
     endif
     if tail =~ '^\s*$'
-      let l = e
+      let l = le
     else
-      let l = e - 1
-      call setline(e, tail)
+      let l = le - 1
+      call setline(le, tail)
     endif
     if f <= l
       silent! exe f.','.l.'delete _'
