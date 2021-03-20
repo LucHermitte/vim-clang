@@ -5,7 +5,7 @@
 " Version:      0.0.4
 let s:k_version = 004
 " Created:      07th Jan 2013
-" Last Update:  19th Mar 2021
+" Last Update:  20th Mar 2021
 "------------------------------------------------------------------------
 " Description:                                                 {{{2
 "       Autoload plugin from vim-lang
@@ -415,7 +415,7 @@ endfunction
 
 " Function: clang#cut_extent(extent, what) {{{2
 " Extents seems to be specified as [start, end)
-" TODO: check UTF-8...
+" TODO: fix: extent are expressed in char positions, not in bytes
 function! clang#cut_extent(extent, what) abort
   if resolve(fnamemodify(a:extent.filename, ':p')) == resolve(expand('%:p'))
     " Current buffer may have been changed since last save
@@ -463,6 +463,21 @@ function! clang#cut_extent(extent, what) abort
     endif
   endif
   return lines
+endfunction
+
+" Function: clang#prev_position(position) {{{2
+" {position} comes from extents
+" @pre: there exists a previous position
+function! clang#prev_position(position) abort
+  let pos = copy(a:position)
+  if pos.col == 1
+    let pos.col -= 1
+  else
+    call lh#assert#value(pos.lnum).is_gt(1)
+    let pos.lnum -= 1
+    let pos.col = lh#encoding#strlen(getline(pos.lnum)) + 1
+  endif
+  return pos
 endfunction
 
 " Function: clang#parents() {{{2
