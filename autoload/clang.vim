@@ -470,6 +470,21 @@ function! clang#cut_extent(extent, what) abort
   return lines
 endfunction
 
+" Function: clang#next_position(position) {{{2
+" {position} comes from extents
+" @pre: there exists a nextious position
+function! clang#next_position(position) abort
+  let pos = copy(a:position)
+  if pos.col == lh#encoding#strlen(getline(pos.lnum))
+    let pos.col += 1
+  else
+    call lh#assert#value(pos.lnum).is_gt(1)
+    let pos.lnum += 1
+    let pos.col = 1
+  endif
+  return pos
+endfunction
+
 " Function: clang#prev_position(position) {{{2
 " {position} comes from extents
 " @pre: there exists a previous position
