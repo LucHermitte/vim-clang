@@ -70,6 +70,7 @@ def getCurrentFile():                                       # {{{2
 
 def getBufferInfo():                                        # {{{2
   filename = vim.current.buffer.name
+  # verbose("undotree(): %s" % (vim.eval('undotree()')))
   revnumber = vim.eval('undotree().seq_cur')
   return [filename, revnumber]
 
@@ -451,6 +452,13 @@ def decodeFunction(cursor, recurse_level = 1):              # {{{2
     res['constructor_kind'] = decodeConstructorKind(cursor)
     if len(parameters) == 1 and not cursor.is_converting_constructor():
       res['explicit']         = True
+    # TODO: try to decode initialisation-list, or more generally what comes
+    # after the signature, even if it's comments
+    # It should end with the last child extent that is just before
+    # CursorKind.COMPOUND_STMT child. Yet, this some children may be
+    # parameters...
+    # => need to find first isolated `:` after `)`, `noexcept` `throw()`, or
+    # comments...
 
   # The function type, i.e. its signature somehow
   res['type']             = decodeType(cursor.type)
@@ -561,6 +569,7 @@ def decodeCursor(cursor, recurse_level = 1):                # {{{2
   elif cursor.kind == CursorKind.TYPE_REF:
     res['typeref'] = decodeType(cursor.type)
     res['typeref']['canonical'] = decodeType(cursor.type.get_canonical())
+    res['typeref']['extent'] = decodeExtent(cursor.extent)
   return res
 
 def getCurrentSymbol(what = None):                          # {{{2
@@ -579,6 +588,8 @@ def getCurrentSymbol(what = None):                          # {{{2
     elif what == 'documentable':
       cursor = findDocumentable(cursor0)
       recurse_level = 0 # no need to find children in this use case
+    else:
+      cursor = cursor0
     if not cursor and debug:
       text = vim.eval('clang#extract_from_extent('+str(decodeExtent(cursor0.extent))+', "'+what+'?")')
       verbose("\n\nWARNING: Cannot decode a %s as in %s we find a %s\n--> %s"
